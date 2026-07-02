@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}Match Display{% endblock %}
+{% block bodyclass %}display{% endblock %}
+{% block content %}
+  <header class="disp-top">
+    <div class="match-label">MATCH <span id="match-number">&ndash;</span></div>
+    <div id="timer" class="timer">--:--</div>
+  </header>
+  <main class="alliances">
+    <section class="alliance red">
+      <div class="alliance-name">RED</div>
+      <div class="team-number" id="red-team">---</div>
+      <div class="score" id="red-score">0</div>
+      <div class="penalties">PENALTIES: <span id="red-pen">0</span></div>
+    </section>
+    <section class="alliance blue">
+      <div class="alliance-name">BLUE</div>
+      <div class="team-number" id="blue-team">---</div>
+      <div class="score" id="blue-score">0</div>
+      <div class="penalties">PENALTIES: <span id="blue-pen">0</span></div>
+    </section>
+  </main>
+{% endblock %}
+{% block script %}
+<script>
+async function refresh() {
+  try {
+    const s = await fetchState();
+    document.getElementById('match-number').textContent = s.match_number;
+    document.getElementById('red-team').textContent = s.red_team;
+    document.getElementById('blue-team').textContent = s.blue_team;
+    document.getElementById('red-score').textContent = s.red_score;
+    document.getElementById('blue-score').textContent = s.blue_score;
+    document.getElementById('red-pen').textContent = s.red_penalties;
+    document.getElementById('blue-pen').textContent = s.blue_penalties;
+    const timer = document.getElementById('timer');
+    timer.textContent = fmtTime(s.timer_remaining);
+    timer.classList.toggle('done', s.timer_remaining <= 0);
+  } catch (e) { /* keep last known values if the network hiccups */ }
+}
+refresh();
+setInterval(refresh, 1000);
+</script>
+{% endblock %}

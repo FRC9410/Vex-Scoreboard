@@ -1,0 +1,108 @@
+{% extends "base.html" %}
+{% block title %}Match Admin{% endblock %}
+{% block bodyclass %}admin{% endblock %}
+{% block content %}
+  <h1>MATCH ADMIN</h1>
+
+  <section class="card">
+    <h2>Timer <span id="timer-mini" class="mini">--:--</span></h2>
+    <div class="btn-row">
+      <button class="ctl start" data-action="start">Start</button>
+      <button class="ctl pause" data-action="pause">Pause</button>
+      <button class="ctl reset" data-action="reset">Reset</button>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>Match Setup</h2>
+    <label>Match number
+      <input id="match-number" type="number" min="1" max="9999" inputmode="numeric">
+    </label>
+    <label>Red team number
+      <input id="red-team" maxlength="12" autocomplete="off">
+    </label>
+    <label>Blue team number
+      <input id="blue-team" maxlength="12" autocomplete="off">
+    </label>
+    <label>Match length (seconds)
+      <input id="timer-duration" type="number" min="5" max="3600" inputmode="numeric">
+    </label>
+    <button id="save" class="ctl save">Save</button>
+    <div id="save-msg" class="msg"></div>
+  </section>
+
+  <section class="card">
+    <h2>Scores <span id="score-mini" class="mini"></span></h2>
+    <button id="reset-scores" class="ctl danger">Reset scores &amp; penalties to 0</button>
+  </section>
+
+  <div class="foot-links">
+    <a href="/">Referee</a> &middot; <a href="/display">Display</a>
+  </div>
+{% endblock %}
+{% block script %}
+<script>
+let formLoaded = false;
+
+function fillForm(s) {
+  document.getElementById('match-number').value = s.match_number;
+  document.getElementById('red-team').value = s.red_team;
+  document.getElementById('blue-team').value = s.blue_team;
+  document.getElementById('timer-duration').value = s.timer_duration;
+  formLoaded = true;
+}
+
+function showStatus(s) {
+  const t = document.getElementById('timer-mini');
+  t.textContent = fmtTime(s.timer_remaining) + (s.timer_running ? ' (running)' : '');
+  document.getElementById('score-mini').textContent =
+    'Red ' + s.red_score + ' – Blue ' + s.blue_score;
+  if (!formLoaded) fillForm(s);
+}
+
+async function post(url, body) {
+  const r = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body)
+  });
+  const s = await r.json();
+  if (!r.ok) throw new Error(s.error || 'request failed');
+  showStatus(s);
+  return s;
+}
+
+document.querySelectorAll('[data-action]').forEach(btn =>
+  btn.addEventListener('click', () => post('/api/timer', { action: btn.dataset.action }).catch(() => {}))
+);
+
+document.getElementById('save').addEventListener('click', async () => {
+  const msg = document.getElementById('save-msg');
+  try {
+    const s = await post('/api/setup', {
+      match_number: document.getElementById('match-number').value,
+      red_team: document.getElementById('red-team').value,
+      blue_team: document.getElementById('blue-team').value,
+      timer_duration: document.getElementById('timer-duration').value
+    });
+    fillForm(s);
+    msg.textContent = 'Saved.';
+  } catch (e) {
+    msg.textContent = e.message;
+  }
+  setTimeout(() => { msg.textContent = ''; }, 3000);
+});
+
+document.getElementById('reset-scores').addEventListener('click', () => {
+  if (confirm('Reset both scores and penalties to 0?')) {
+    post('/api/setup', { reset_scores: true }).catch(() => {});
+  }
+});
+
+async function refresh() {
+  try { showStatus(await fetchState()); } catch (e) {}
+}
+refresh();
+setInterval(refresh, 1000);
+</script>
+{% endblock %}

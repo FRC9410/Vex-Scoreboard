@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block title %}{{ team|capitalize }} Score{% endblock %}
+{% block bodyclass %}panel {{ team }}{% endblock %}
+{% block content %}
+  <header class="panel-top">
+    <a class="back" href="/">&#8592; Back</a>
+    <div class="panel-title">{{ team|upper }} TEAM <span id="team-number"></span></div>
+  </header>
+  <main class="adjust">
+    <button id="minus" class="adj-btn minus" aria-label="minus one">&minus;</button>
+    <div id="score" class="panel-score">&ndash;</div>
+    <button id="plus" class="adj-btn plus" aria-label="plus one">+</button>
+  </main>
+{% endblock %}
+{% block script %}
+<script>
+const TEAM = "{{ team }}";
+let tapsInFlight = 0;
+
+function apply(s) {
+  document.getElementById('score').textContent = s[TEAM + '_score'];
+  document.getElementById('team-number').textContent = s[TEAM + '_team'];
+}
+
+async function send(delta) {
+  tapsInFlight++;
+  try {
+    const r = await fetch('/api/adjust', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ team: TEAM, delta: delta })
+    });
+    if (r.ok) apply(await r.json());
+  } catch (e) { /* next poll will resync */ }
+  tapsInFlight--;
+}
+
+document.getElementById('plus').addEventListener('click', () => send(1));
+document.getElementById('minus').addEventListener('click', () => send(-1));
+
+async function refresh() {
+  try {
+    const s = await fetchState();
+    if (tapsInFlight === 0) apply(s); // don't clobber a tap that's mid-flight
+  } catch (e) {}
+}
+refresh();
+setInterval(refresh, 1000);
+</script>
+{% endblock %}
