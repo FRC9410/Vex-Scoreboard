@@ -111,7 +111,15 @@ button { font-family: inherit; cursor: pointer; border: none; color: var(--text)
   background: rgba(0, 0, 0, 0.28);
 }
 
-.team-number { font-size: 9vh; font-weight: 800; text-shadow: 0 0.4vh 1.5vh rgba(0, 0, 0, 0.5); }
+.team-name {
+  font-size: 7.5vh;
+  font-weight: 800;
+  text-align: center;
+  line-height: 1.1;
+  max-width: 94%;
+  overflow-wrap: break-word;
+  text-shadow: 0 0.4vh 1.5vh rgba(0, 0, 0, 0.5);
+}
 
 .score {
   font-size: 33vh;

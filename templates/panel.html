@@ -4,7 +4,7 @@
 {% block content %}
   <header class="panel-top">
     <a class="back" href="/">&#8592; Back</a>
-    <div class="panel-title">{{ team|upper }} TEAM <span id="team-number"></span></div>
+    <div class="panel-title">{{ team|upper }} TEAM <span id="team-name"></span></div>
   </header>
   <main class="adjust">
     <div id="score" class="panel-score">&ndash;</div>
@@ -32,7 +32,7 @@ function apply(s) {
   }
   lastScore = val;
   el.textContent = val;
-  document.getElementById('team-number').textContent = s[TEAM + '_team'];
+  document.getElementById('team-name').textContent = s[TEAM + '_team'];
 }
 
 async function send(body) {

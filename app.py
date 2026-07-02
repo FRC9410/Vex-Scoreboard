@@ -182,8 +182,8 @@ def api_setup():
     except (TypeError, ValueError):
         return jsonify({"error": "match number and match length must be whole numbers"}), 400
 
-    red_team = (str(data.get("red_team", row["red_team"])).strip() or "---")[:12]
-    blue_team = (str(data.get("blue_team", row["blue_team"])).strip() or "---")[:12]
+    red_team = (str(data.get("red_team", row["red_team"])).strip() or "---")[:20]
+    blue_team = (str(data.get("blue_team", row["blue_team"])).strip() or "---")[:20]
 
     db.execute(
         "UPDATE match_state SET match_number = ?, red_team = ?, blue_team = ?,"

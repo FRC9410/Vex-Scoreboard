@@ -21,8 +21,8 @@ Built with Python Flask, SQLite, and plain HTML/CSS/JS. Scores persist across re
 
 - **`/`** — referee home: two big buttons, Red Team and Blue Team.
 - **`/panel/red`, `/panel/blue`** — giant − / + buttons around the current score. Every tap updates the live display within a second; no submit button. Back button returns home.
-- **`/display`** — projector view: match number, countdown timer, both team numbers and scores in huge text, penalties per team (display-only for now). Refreshes every second.
-- **`/admin`** — start/pause/reset the match timer, set match number, team numbers, match length (default 2:00), and reset scores between matches.
+- **`/display`** — projector view: match number, countdown timer, both team names and scores in huge text, penalties per team (display-only for now). Refreshes every second.
+- **`/admin`** — start/pause/reset the match timer, set match number, team names, match length (default 2:00), and reset scores between matches.
 
 ## Running on the Raspberry Pi
 
