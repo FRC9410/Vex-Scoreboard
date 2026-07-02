@@ -120,15 +120,20 @@ def api_state():
 def api_adjust():
     data = request.get_json(silent=True) or {}
     team = data.get("team")
-    delta = data.get("delta")
-    if team not in ("red", "blue") or delta not in (1, -1):
+    if team not in ("red", "blue"):
         return jsonify({"error": "bad request"}), 400
     col = team + "_score"
     db = get_db()
-    db.execute(
-        "UPDATE match_state SET {0} = MAX(0, {0} + ?) WHERE id = 1".format(col),
-        (delta,),
-    )
+    if data.get("clear"):
+        db.execute("UPDATE match_state SET {0} = 0 WHERE id = 1".format(col))
+    else:
+        delta = data.get("delta")
+        if delta not in (-1, 1, 2):
+            return jsonify({"error": "bad request"}), 400
+        db.execute(
+            "UPDATE match_state SET {0} = MAX(0, {0} + ?) WHERE id = 1".format(col),
+            (delta,),
+        )
     db.commit()
     return state_json()
 

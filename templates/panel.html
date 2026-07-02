@@ -7,36 +7,54 @@
     <div class="panel-title">{{ team|upper }} TEAM <span id="team-number"></span></div>
   </header>
   <main class="adjust">
-    <button id="minus" class="adj-btn minus" aria-label="minus one">&minus;</button>
     <div id="score" class="panel-score">&ndash;</div>
-    <button id="plus" class="adj-btn plus" aria-label="plus one">+</button>
+    <div class="btn-grid">
+      <button class="adj-btn plus" data-delta="1">+1</button>
+      <button class="adj-btn plus" data-delta="2">+2</button>
+      <button class="adj-btn minus" data-delta="-1">&minus;1</button>
+      <button id="clear" class="adj-btn clear">CLEAR</button>
+    </div>
   </main>
 {% endblock %}
 {% block script %}
 <script>
 const TEAM = "{{ team }}";
 let tapsInFlight = 0;
+let lastScore = null;
 
 function apply(s) {
-  document.getElementById('score').textContent = s[TEAM + '_score'];
+  const el = document.getElementById('score');
+  const val = s[TEAM + '_score'];
+  if (lastScore !== null && val !== lastScore) {
+    el.classList.remove('pop');
+    void el.offsetWidth;
+    el.classList.add('pop');
+  }
+  lastScore = val;
+  el.textContent = val;
   document.getElementById('team-number').textContent = s[TEAM + '_team'];
 }
 
-async function send(delta) {
+async function send(body) {
   tapsInFlight++;
   try {
     const r = await fetch('/api/adjust', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ team: TEAM, delta: delta })
+      body: JSON.stringify(Object.assign({ team: TEAM }, body))
     });
     if (r.ok) apply(await r.json());
   } catch (e) { /* next poll will resync */ }
   tapsInFlight--;
 }
 
-document.getElementById('plus').addEventListener('click', () => send(1));
-document.getElementById('minus').addEventListener('click', () => send(-1));
+document.querySelectorAll('[data-delta]').forEach(btn =>
+  btn.addEventListener('click', () => send({ delta: parseInt(btn.dataset.delta, 10) }))
+);
+
+document.getElementById('clear').addEventListener('click', () => {
+  if (confirm('Clear the ' + TEAM.toUpperCase() + ' score to 0?')) send({ clear: true });
+});
 
 async function refresh() {
   try {
