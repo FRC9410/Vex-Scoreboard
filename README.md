@@ -6,16 +6,32 @@ Built with Python Flask, SQLite, and plain HTML/CSS/JS. Scores persist across re
 
 ## Referee & display links
 
-> These links work for any device **on the same WiFi network as the Pi**.
-> `raspberrypi.local` is the default Pi hostname — if it doesn't resolve on your network, replace it with the Pi's IP address (run `hostname -I` on the Pi), e.g. `http://192.168.1.50:5000/`.
+> First join the Pi's own WiFi network (**VEX-SCORE** — setup below), then these links just work.
+> On its own network the Pi is always `10.42.0.1`.
 
 | Page | Link | Who uses it |
 |---|---|---|
-| Referee home (Red/Blue buttons) | [http://raspberrypi.local:5000/](http://raspberrypi.local:5000/) | Referees |
-| Red score panel | [http://raspberrypi.local:5000/panel/red](http://raspberrypi.local:5000/panel/red) | Red-side referee |
-| Blue score panel | [http://raspberrypi.local:5000/panel/blue](http://raspberrypi.local:5000/panel/blue) | Blue-side referee |
-| Live match display | [http://raspberrypi.local:5000/display](http://raspberrypi.local:5000/display) | Projector / audience |
-| Match admin (timer, teams, resets) | [http://raspberrypi.local:5000/admin](http://raspberrypi.local:5000/admin) | Event staff |
+| Referee home (Red/Blue buttons) | [http://10.42.0.1:5000/](http://10.42.0.1:5000/) | Referees |
+| Red score panel | [http://10.42.0.1:5000/panel/red](http://10.42.0.1:5000/panel/red) | Red-side referee |
+| Blue score panel | [http://10.42.0.1:5000/panel/blue](http://10.42.0.1:5000/panel/blue) | Blue-side referee |
+| Live match display | [http://10.42.0.1:5000/display](http://10.42.0.1:5000/display) | Projector / audience |
+| Match admin (timer, teams, resets) | [http://10.42.0.1:5000/admin](http://10.42.0.1:5000/admin) | Event staff |
+
+## Event WiFi: the Pi makes its own network
+
+School and venue WiFi usually has **client isolation** (devices can't talk to each other), so don't fight it — the Pi broadcasts its own hotspot and the phones + projector laptop join that instead. One-time setup on Raspberry Pi OS (Bookworm or newer):
+
+```bash
+# create a WiFi network named VEX-SCORE (password: vexscore123)
+sudo nmcli device wifi hotspot ssid VEX-SCORE password vexscore123
+
+# make it come back automatically on every boot
+sudo nmcli connection modify Hotspot connection.autoconnect yes connection.autoconnect-priority 100
+```
+
+Pick any SSID/password you like (password needs 8+ characters). While hosting the hotspot the Pi's WiFi has no internet — the scoreboard doesn't need any.
+
+**Match day:** power the Pi → the VEX-SCORE network appears → refs and the projector laptop join it → open the links above.
 
 ## Pages
 
@@ -31,7 +47,7 @@ sudo apt install python3-flask     # or: pip3 install -r requirements.txt
 python3 app.py
 ```
 
-The server listens on port 5000 on all interfaces. Find the Pi's address with `hostname -I`, then open the links above from any phone or laptop on the same network.
+The server listens on port 5000 on all interfaces. On the hotspot the Pi is always `http://10.42.0.1:5000`. (If you put the Pi on an existing network instead, find its address with `hostname -I` and use that in the links — but beware client isolation on managed WiFi.)
 
 `scores.db` (the SQLite database) is created automatically next to `app.py` on first run.
 
