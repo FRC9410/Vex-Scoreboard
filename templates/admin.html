@@ -18,15 +18,21 @@
     <label>Match number
       <input id="match-number" type="number" min="1" max="9999" inputmode="numeric">
     </label>
-    <label>Red team name
-      <input id="red-team" maxlength="20" autocomplete="off">
+    <label>Yellow team name
+      <input id="yellow-team" maxlength="20" autocomplete="off">
     </label>
-    <label>Blue team name
-      <input id="blue-team" maxlength="20" autocomplete="off">
+    <label>Green team name
+      <input id="green-team" maxlength="20" autocomplete="off">
     </label>
-    <label>Match length (seconds)
-      <input id="timer-duration" type="number" min="5" max="3600" inputmode="numeric">
-      <span class="hint">GEM QUEST match = 150 (0:20 auto &middot; 1:40 driving &middot; 0:30 endgame)</span>
+    <label>Auto time (seconds)
+      <input id="auto-duration" type="number" min="0" max="600" inputmode="numeric">
+    </label>
+    <label>Teleop time (seconds)
+      <input id="driver-duration" type="number" min="5" max="3600" inputmode="numeric">
+    </label>
+    <label>Endgame time (seconds)
+      <input id="endgame-duration" type="number" min="0" max="600" inputmode="numeric">
+      <span class="hint">Official GEM QUEST: 20 auto &middot; 100 teleop &middot; 30 endgame (2:30 total)</span>
     </label>
     <button id="save" class="ctl save">Save</button>
     <div id="save-msg" class="msg"></div>
@@ -47,9 +53,11 @@ let formLoaded = false;
 
 function fillForm(s) {
   document.getElementById('match-number').value = s.match_number;
-  document.getElementById('red-team').value = s.red_team;
-  document.getElementById('blue-team').value = s.blue_team;
-  document.getElementById('timer-duration').value = s.timer_duration;
+  document.getElementById('yellow-team').value = s.yellow_team;
+  document.getElementById('green-team').value = s.green_team;
+  document.getElementById('auto-duration').value = s.auto_duration;
+  document.getElementById('driver-duration').value = s.driver_duration;
+  document.getElementById('endgame-duration').value = s.endgame_duration;
   formLoaded = true;
 }
 
@@ -57,7 +65,7 @@ function showStatus(s) {
   const t = document.getElementById('timer-mini');
   t.textContent = fmtTime(s.timer_remaining) + (s.timer_running ? ' (running)' : '');
   document.getElementById('score-mini').textContent =
-    'Red ' + s.red_score + ' – Blue ' + s.blue_score;
+    'Yellow ' + s.yellow_score + ' – Green ' + s.green_score;
   if (!formLoaded) fillForm(s);
 }
 
@@ -82,9 +90,11 @@ document.getElementById('save').addEventListener('click', async () => {
   try {
     const s = await post('/api/setup', {
       match_number: document.getElementById('match-number').value,
-      red_team: document.getElementById('red-team').value,
-      blue_team: document.getElementById('blue-team').value,
-      timer_duration: document.getElementById('timer-duration').value
+      yellow_team: document.getElementById('yellow-team').value,
+      green_team: document.getElementById('green-team').value,
+      auto_duration: document.getElementById('auto-duration').value,
+      driver_duration: document.getElementById('driver-duration').value,
+      endgame_duration: document.getElementById('endgame-duration').value
     });
     fillForm(s);
     msg.textContent = 'Saved.';

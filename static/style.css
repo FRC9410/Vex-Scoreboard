@@ -8,12 +8,12 @@
   --edge: rgba(255, 255, 255, 0.09);
   --text: #f5f5f7;
   --dim: #8f8f9c;
-  --red: #e0243a;
-  --red-hi: #ff4d5e;
-  --red-deep: #6e0a18;
-  --blue: #1e63e9;
-  --blue-hi: #4d8dff;
-  --blue-deep: #0b2c74;
+  --gold: #e6a800;
+  --gold-hi: #ffc61a;
+  --gold-deep: #5c4302;
+  --green: #1fa14a;
+  --green-hi: #35d46a;
+  --green-deep: #0b4a22;
   --yellow: #ffd60a;
 }
 
@@ -90,16 +90,16 @@ button { font-family: inherit; cursor: pointer; border: none; color: var(--text)
   transition: box-shadow 0.4s ease, border-color 0.4s ease;
 }
 
-.alliance.red { background: linear-gradient(180deg, #a01226 0%, #4d0510 100%); }
-.alliance.blue { background: linear-gradient(180deg, #14459f 0%, #071d4d 100%); }
+.alliance.yellow { background: linear-gradient(180deg, #9c7a06 0%, #4a3902 100%); }
+.alliance.green { background: linear-gradient(180deg, #12813a 0%, #053d1b 100%); }
 
-.alliance.red.leading {
-  border-color: rgba(255, 120, 130, 0.75);
-  box-shadow: 0 0 6vh rgba(255, 77, 94, 0.45), inset 0 0 8vh rgba(255, 255, 255, 0.06);
+.alliance.yellow.leading {
+  border-color: rgba(255, 214, 90, 0.8);
+  box-shadow: 0 0 6vh rgba(255, 198, 26, 0.45), inset 0 0 8vh rgba(255, 255, 255, 0.06);
 }
-.alliance.blue.leading {
-  border-color: rgba(120, 165, 255, 0.75);
-  box-shadow: 0 0 6vh rgba(77, 141, 255, 0.5), inset 0 0 8vh rgba(255, 255, 255, 0.06);
+.alliance.green.leading {
+  border-color: rgba(130, 235, 165, 0.8);
+  box-shadow: 0 0 6vh rgba(53, 212, 106, 0.5), inset 0 0 8vh rgba(255, 255, 255, 0.06);
 }
 
 .alliance-name {
@@ -151,10 +151,20 @@ button { font-family: inherit; cursor: pointer; border: none; color: var(--text)
   color: var(--dim);
 }
 
-.phase.auto { color: var(--yellow); }
-.phase.driver { color: #35d46a; }
+.phase.auto { color: #39c5ff; }
+.phase.driver { color: #e8e8f0; }
 .phase.endgame { color: #ff6a3d; animation: pulse 1s infinite; }
 .phase.done { color: #ff453a; }
+
+.total-time {
+  min-height: 3vh;
+  font-size: 2.4vh;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  color: var(--dim);
+  font-variant-numeric: tabular-nums;
+  padding-top: 0.6vh;
+}
 
 .vs {
   position: absolute;
@@ -210,13 +220,13 @@ button { font-family: inherit; cursor: pointer; border: none; color: var(--text)
   transition: transform 0.08s ease;
 }
 
-.team-btn.red {
-  background: linear-gradient(165deg, var(--red-hi) 0%, var(--red-deep) 100%);
-  box-shadow: 0 12px 30px rgba(224, 36, 58, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.3);
+.team-btn.yellow {
+  background: linear-gradient(165deg, var(--gold-hi) 0%, var(--gold-deep) 100%);
+  box-shadow: 0 12px 30px rgba(230, 168, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.3);
 }
-.team-btn.blue {
-  background: linear-gradient(165deg, var(--blue-hi) 0%, var(--blue-deep) 100%);
-  box-shadow: 0 12px 30px rgba(30, 99, 233, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.3);
+.team-btn.green {
+  background: linear-gradient(165deg, var(--green-hi) 0%, var(--green-deep) 100%);
+  box-shadow: 0 12px 30px rgba(31, 161, 74, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.3);
 }
 .team-btn:active { transform: scale(0.97); filter: brightness(1.2); }
 
@@ -242,8 +252,8 @@ button { font-family: inherit; cursor: pointer; border: none; color: var(--text)
 }
 
 .panel-title { font-size: 1.4rem; font-weight: 800; letter-spacing: 0.06em; }
-.panel.red .panel-title { color: #ff8a94; }
-.panel.blue .panel-title { color: #8ab2ff; }
+.panel.yellow .panel-title { color: #ffd76a; }
+.panel.green .panel-title { color: #7de8a0; }
 
 .adjust {
   flex: 1;
@@ -268,13 +278,13 @@ button { font-family: inherit; cursor: pointer; border: none; color: var(--text)
   min-height: 0;
 }
 
-.panel.red .panel-score {
-  background: linear-gradient(180deg, rgba(224, 36, 58, 0.22), rgba(224, 36, 58, 0.05));
-  text-shadow: 0 0 40px rgba(255, 77, 94, 0.45);
+.panel.yellow .panel-score {
+  background: linear-gradient(180deg, rgba(230, 168, 0, 0.22), rgba(230, 168, 0, 0.05));
+  text-shadow: 0 0 40px rgba(255, 198, 26, 0.45);
 }
-.panel.blue .panel-score {
-  background: linear-gradient(180deg, rgba(30, 99, 233, 0.25), rgba(30, 99, 233, 0.06));
-  text-shadow: 0 0 40px rgba(77, 141, 255, 0.5);
+.panel.green .panel-score {
+  background: linear-gradient(180deg, rgba(31, 161, 74, 0.25), rgba(31, 161, 74, 0.06));
+  text-shadow: 0 0 40px rgba(53, 212, 106, 0.5);
 }
 
 .btn-grid {
@@ -296,13 +306,13 @@ button { font-family: inherit; cursor: pointer; border: none; color: var(--text)
   text-shadow: 0 3px 8px rgba(0, 0, 0, 0.35);
 }
 
-.panel.red .adj-btn.plus {
-  background: linear-gradient(165deg, var(--red-hi), var(--red-deep));
-  box-shadow: 0 10px 24px rgba(224, 36, 58, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.3);
+.panel.yellow .adj-btn.plus {
+  background: linear-gradient(165deg, var(--gold-hi), var(--gold-deep));
+  box-shadow: 0 10px 24px rgba(230, 168, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.3);
 }
-.panel.blue .adj-btn.plus {
-  background: linear-gradient(165deg, var(--blue-hi), var(--blue-deep));
-  box-shadow: 0 10px 24px rgba(30, 99, 233, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.3);
+.panel.green .adj-btn.plus {
+  background: linear-gradient(165deg, var(--green-hi), var(--green-deep));
+  box-shadow: 0 10px 24px rgba(31, 161, 74, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.3);
 }
 
 .adj-btn.minus {
@@ -313,8 +323,8 @@ button { font-family: inherit; cursor: pointer; border: none; color: var(--text)
 .adj-btn.foul {
   font-size: clamp(1.2rem, 5.5vw, 2.8rem);
   letter-spacing: 0.08em;
-  background: linear-gradient(165deg, #f2a516, #7a4d05);
-  box-shadow: 0 10px 24px rgba(242, 165, 22, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.3);
+  background: linear-gradient(165deg, #ff8c1a, #7a3c05);
+  box-shadow: 0 10px 24px rgba(255, 140, 26, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.3);
 }
 
 .adj-btn.foul.major {

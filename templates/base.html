@@ -18,6 +18,16 @@ async function fetchState() {
   if (!r.ok) throw new Error('state fetch failed');
   return r.json();
 }
+// Which part of the match we're in, plus the time left in that part.
+function phaseInfo(s) {
+  const auto = s.auto_duration, drv = s.driver_duration, total = s.timer_duration;
+  const rem = s.timer_remaining, elapsed = total - rem;
+  if (rem <= 0) return { label: 'MATCH OVER', cls: 'done', phaseRem: 0 };
+  if (!s.timer_running && rem >= total) return { label: 'PRE-MATCH', cls: 'pre', phaseRem: total };
+  if (elapsed < auto) return { label: 'AUTO ×2', cls: 'auto', phaseRem: auto - elapsed };
+  if (elapsed < auto + drv) return { label: 'TELEOP', cls: 'driver', phaseRem: auto + drv - elapsed };
+  return { label: 'ENDGAME — PARK!', cls: 'endgame', phaseRem: rem };
+}
 </script>
 {% block script %}{% endblock %}
 </body>

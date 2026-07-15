@@ -6,7 +6,13 @@ from flask import Flask, g, jsonify, redirect, render_template, request, url_for
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DB_PATH = os.path.join(BASE_DIR, "scores.db")
-DEFAULT_DURATION = 150  # GEM QUEST match: 0:20 auto + 1:40 driving + 0:30 endgame
+
+# GEM QUEST match: 0:20 auto + 1:40 teleop + 0:30 endgame = 2:30
+DEFAULT_AUTO = 20
+DEFAULT_DRIVER = 100
+DEFAULT_ENDGAME = 30
+
+TEAMS = ("yellow", "green")
 
 app = Flask(__name__)
 
@@ -32,33 +38,75 @@ def init_db():
         CREATE TABLE IF NOT EXISTS match_state (
             id INTEGER PRIMARY KEY CHECK (id = 1),
             match_number INTEGER NOT NULL DEFAULT 1,
-            red_team TEXT NOT NULL DEFAULT '---',
-            blue_team TEXT NOT NULL DEFAULT '---',
-            red_score INTEGER NOT NULL DEFAULT 0,
-            blue_score INTEGER NOT NULL DEFAULT 0,
-            red_fouls INTEGER NOT NULL DEFAULT 0,
-            red_majors INTEGER NOT NULL DEFAULT 0,
-            blue_fouls INTEGER NOT NULL DEFAULT 0,
-            blue_majors INTEGER NOT NULL DEFAULT 0,
-            timer_duration INTEGER NOT NULL DEFAULT 120,
-            timer_remaining REAL NOT NULL DEFAULT 120,
+            yellow_team TEXT NOT NULL DEFAULT '---',
+            green_team TEXT NOT NULL DEFAULT '---',
+            yellow_score INTEGER NOT NULL DEFAULT 0,
+            green_score INTEGER NOT NULL DEFAULT 0,
+            yellow_fouls INTEGER NOT NULL DEFAULT 0,
+            yellow_majors INTEGER NOT NULL DEFAULT 0,
+            green_fouls INTEGER NOT NULL DEFAULT 0,
+            green_majors INTEGER NOT NULL DEFAULT 0,
+            auto_duration INTEGER NOT NULL DEFAULT {auto},
+            driver_duration INTEGER NOT NULL DEFAULT {driver},
+            endgame_duration INTEGER NOT NULL DEFAULT {endgame},
+            timer_duration INTEGER NOT NULL DEFAULT {total},
+            timer_remaining REAL NOT NULL DEFAULT {total},
             timer_end REAL,
             timer_running INTEGER NOT NULL DEFAULT 0
         )
-        """
+        """.format(
+            auto=DEFAULT_AUTO,
+            driver=DEFAULT_DRIVER,
+            endgame=DEFAULT_ENDGAME,
+            total=DEFAULT_AUTO + DEFAULT_DRIVER + DEFAULT_ENDGAME,
+        )
     )
-    db.execute(
-        "INSERT OR IGNORE INTO match_state (id, timer_duration, timer_remaining)"
-        " VALUES (1, ?, ?)",
-        (DEFAULT_DURATION, DEFAULT_DURATION),
-    )
-    # Databases created before foul tracking lack these columns.
+    db.execute("INSERT OR IGNORE INTO match_state (id) VALUES (1)")
+
+    # Migrate databases from when the teams were red/blue.
     existing = {row[1] for row in db.execute("PRAGMA table_info(match_state)")}
-    for col in ("red_fouls", "red_majors", "blue_fouls", "blue_majors"):
+    renames = {
+        "red_team": "yellow_team",
+        "blue_team": "green_team",
+        "red_score": "yellow_score",
+        "blue_score": "green_score",
+        "red_fouls": "yellow_fouls",
+        "red_majors": "yellow_majors",
+        "blue_fouls": "green_fouls",
+        "blue_majors": "green_majors",
+    }
+    for old, new in renames.items():
+        if old in existing and new not in existing:
+            db.execute(
+                "ALTER TABLE match_state RENAME COLUMN {0} TO {1}".format(old, new)
+            )
+            existing.discard(old)
+            existing.add(new)
+    for col, default in (
+        ("yellow_fouls", 0),
+        ("yellow_majors", 0),
+        ("green_fouls", 0),
+        ("green_majors", 0),
+        ("auto_duration", DEFAULT_AUTO),
+        ("driver_duration", DEFAULT_DRIVER),
+        ("endgame_duration", DEFAULT_ENDGAME),
+    ):
         if col not in existing:
             db.execute(
-                "ALTER TABLE match_state ADD COLUMN {0} INTEGER NOT NULL DEFAULT 0".format(col)
+                "ALTER TABLE match_state ADD COLUMN {0} INTEGER NOT NULL"
+                " DEFAULT {1}".format(col, default)
             )
+            if col == "endgame_duration":
+                # Old databases stored only a flat match length; line the
+                # stored total up with the new per-phase durations.
+                db.execute(
+                    "UPDATE match_state SET timer_duration = ?,"
+                    " timer_remaining = ?, timer_running = 0 WHERE id = 1",
+                    (
+                        DEFAULT_AUTO + DEFAULT_DRIVER + DEFAULT_ENDGAME,
+                        DEFAULT_AUTO + DEFAULT_DRIVER + DEFAULT_ENDGAME,
+                    ),
+                )
     db.commit()
     db.close()
 
@@ -85,14 +133,17 @@ def state_json():
     return jsonify(
         {
             "match_number": row["match_number"],
-            "red_team": row["red_team"],
-            "blue_team": row["blue_team"],
-            "red_score": row["red_score"],
-            "blue_score": row["blue_score"],
-            "red_fouls": row["red_fouls"],
-            "red_majors": row["red_majors"],
-            "blue_fouls": row["blue_fouls"],
-            "blue_majors": row["blue_majors"],
+            "yellow_team": row["yellow_team"],
+            "green_team": row["green_team"],
+            "yellow_score": row["yellow_score"],
+            "green_score": row["green_score"],
+            "yellow_fouls": row["yellow_fouls"],
+            "yellow_majors": row["yellow_majors"],
+            "green_fouls": row["green_fouls"],
+            "green_majors": row["green_majors"],
+            "auto_duration": row["auto_duration"],
+            "driver_duration": row["driver_duration"],
+            "endgame_duration": row["endgame_duration"],
             "timer_duration": row["timer_duration"],
             "timer_remaining": remaining,
             "timer_running": running,
@@ -107,7 +158,10 @@ def referee():
 
 @app.route("/panel/<team>")
 def panel(team):
-    if team not in ("red", "blue"):
+    legacy = {"red": "yellow", "blue": "green"}
+    if team in legacy:
+        return redirect(url_for("panel", team=legacy[team]))
+    if team not in TEAMS:
         return redirect(url_for("referee"))
     return render_template("panel.html", team=team)
 
@@ -131,7 +185,7 @@ def api_state():
 def api_adjust():
     data = request.get_json(silent=True) or {}
     team = data.get("team")
-    if team not in ("red", "blue"):
+    if team not in TEAMS:
         return jsonify({"error": "bad request"}), 400
     col = team + "_score"
     db = get_db()
@@ -159,9 +213,9 @@ def api_foul():
     data = request.get_json(silent=True) or {}
     team = data.get("team")
     kind = data.get("kind")
-    if team not in ("red", "blue") or kind not in FOUL_POINTS:
+    if team not in TEAMS or kind not in FOUL_POINTS:
         return jsonify({"error": "bad request"}), 400
-    offender = "blue" if team == "red" else "red"
+    offender = "green" if team == "yellow" else "yellow"
     points = FOUL_POINTS[kind]
     count_col = offender + ("_fouls" if kind == "foul" else "_majors")
     score_col = team + "_score"
@@ -225,17 +279,21 @@ def api_setup():
 
     try:
         match_number = clamped_int(data.get("match_number", row["match_number"]), 1, 9999)
-        duration = clamped_int(data.get("timer_duration", row["timer_duration"]), 5, 3600)
+        auto = clamped_int(data.get("auto_duration", row["auto_duration"]), 0, 600)
+        driver = clamped_int(data.get("driver_duration", row["driver_duration"]), 5, 3600)
+        endgame = clamped_int(data.get("endgame_duration", row["endgame_duration"]), 0, 600)
     except (TypeError, ValueError):
-        return jsonify({"error": "match number and match length must be whole numbers"}), 400
+        return jsonify({"error": "match number and phase times must be whole numbers"}), 400
 
-    red_team = (str(data.get("red_team", row["red_team"])).strip() or "---")[:20]
-    blue_team = (str(data.get("blue_team", row["blue_team"])).strip() or "---")[:20]
+    yellow_team = (str(data.get("yellow_team", row["yellow_team"])).strip() or "---")[:20]
+    green_team = (str(data.get("green_team", row["green_team"])).strip() or "---")[:20]
+    duration = auto + driver + endgame
 
     db.execute(
-        "UPDATE match_state SET match_number = ?, red_team = ?, blue_team = ?,"
+        "UPDATE match_state SET match_number = ?, yellow_team = ?, green_team = ?,"
+        " auto_duration = ?, driver_duration = ?, endgame_duration = ?,"
         " timer_duration = ? WHERE id = 1",
-        (match_number, red_team, blue_team, duration),
+        (match_number, yellow_team, green_team, auto, driver, endgame, duration),
     )
     if duration != row["timer_duration"]:
         db.execute(
@@ -244,8 +302,8 @@ def api_setup():
         )
     if data.get("reset_scores"):
         db.execute(
-            "UPDATE match_state SET red_score = 0, blue_score = 0,"
-            " red_fouls = 0, red_majors = 0, blue_fouls = 0, blue_majors = 0"
+            "UPDATE match_state SET yellow_score = 0, green_score = 0,"
+            " yellow_fouls = 0, yellow_majors = 0, green_fouls = 0, green_majors = 0"
             " WHERE id = 1"
         )
     db.commit()

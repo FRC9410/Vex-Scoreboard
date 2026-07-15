@@ -6,42 +6,27 @@
     <div class="match-label">MATCH <span id="match-number">&ndash;</span></div>
     <div id="timer" class="timer">--:--</div>
     <div id="phase" class="phase"></div>
+    <div id="total-time" class="total-time"></div>
   </header>
   <main class="alliances">
-    <section class="alliance red" id="red-side">
-      <div class="alliance-name">RED</div>
-      <div class="team-name" id="red-team">---</div>
-      <div class="score" id="red-score">0</div>
-      <div class="penalties">FOULS <span id="red-fouls">0</span> &middot; MAJOR <span id="red-majors">0</span></div>
+    <section class="alliance yellow" id="yellow-side">
+      <div class="alliance-name">YELLOW</div>
+      <div class="team-name" id="yellow-team">---</div>
+      <div class="score" id="yellow-score">0</div>
+      <div class="penalties">FOULS <span id="yellow-fouls">0</span> &middot; MAJOR <span id="yellow-majors">0</span></div>
     </section>
     <div class="vs">VS</div>
-    <section class="alliance blue" id="blue-side">
-      <div class="alliance-name">BLUE</div>
-      <div class="team-name" id="blue-team">---</div>
-      <div class="score" id="blue-score">0</div>
-      <div class="penalties">FOULS <span id="blue-fouls">0</span> &middot; MAJOR <span id="blue-majors">0</span></div>
+    <section class="alliance green" id="green-side">
+      <div class="alliance-name">GREEN</div>
+      <div class="team-name" id="green-team">---</div>
+      <div class="score" id="green-score">0</div>
+      <div class="penalties">FOULS <span id="green-fouls">0</span> &middot; MAJOR <span id="green-majors">0</span></div>
     </section>
   </main>
 {% endblock %}
 {% block script %}
 <script>
-const last = { red: null, blue: null };
-
-// GEM QUEST match phases: 0:20 auto, then driving, last 0:30 is endgame.
-function setPhase(s) {
-  const el = document.getElementById('phase');
-  const dur = s.timer_duration, rem = s.timer_remaining;
-  let label = '', cls = 'phase';
-  if (dur >= 60) {
-    if (rem <= 0) { label = 'MATCH OVER'; cls += ' done'; }
-    else if (!s.timer_running && rem >= dur) { label = 'PRE-MATCH'; }
-    else if (dur - rem < 20) { label = 'AUTO ×2'; cls += ' auto'; }
-    else if (rem <= 30) { label = 'ENDGAME — PARK!'; cls += ' endgame'; }
-    else { label = 'DRIVER CONTROL'; cls += ' driver'; }
-  }
-  el.textContent = label;
-  el.className = cls;
-}
+const last = { yellow: null, green: null };
 
 function setScore(team, val) {
   const el = document.getElementById(team + '-score');
@@ -54,34 +39,49 @@ function setScore(team, val) {
   el.textContent = val;
 }
 
+function setClock(s) {
+  const p = phaseInfo(s);
+
+  const phaseEl = document.getElementById('phase');
+  phaseEl.textContent = p.label;
+  phaseEl.className = 'phase ' + p.cls;
+
+  // Big clock counts down the CURRENT phase; flash red when it's almost up
+  // and through all of endgame.
+  const timer = document.getElementById('timer');
+  timer.textContent = fmtTime(p.phaseRem);
+  timer.className = 'timer';
+  if (p.cls === 'done') {
+    timer.classList.add('done');
+  } else if (s.timer_running && (p.cls === 'endgame' || p.phaseRem <= 10)) {
+    timer.classList.add('low', 'pulse');
+  } else if (s.timer_running && p.phaseRem <= 15) {
+    timer.classList.add('warn');
+  }
+
+  const total = document.getElementById('total-time');
+  total.textContent =
+    (s.timer_remaining > 0 && s.timer_remaining < s.timer_duration)
+      ? 'FULL MATCH ' + fmtTime(s.timer_remaining)
+      : '';
+}
+
 async function refresh() {
   try {
     const s = await fetchState();
     document.getElementById('match-number').textContent = s.match_number;
-    document.getElementById('red-team').textContent = s.red_team;
-    document.getElementById('blue-team').textContent = s.blue_team;
-    setScore('red', s.red_score);
-    setScore('blue', s.blue_score);
-    document.getElementById('red-fouls').textContent = s.red_fouls;
-    document.getElementById('red-majors').textContent = s.red_majors;
-    document.getElementById('blue-fouls').textContent = s.blue_fouls;
-    document.getElementById('blue-majors').textContent = s.blue_majors;
-    setPhase(s);
+    document.getElementById('yellow-team').textContent = s.yellow_team;
+    document.getElementById('green-team').textContent = s.green_team;
+    setScore('yellow', s.yellow_score);
+    setScore('green', s.green_score);
+    document.getElementById('yellow-fouls').textContent = s.yellow_fouls;
+    document.getElementById('yellow-majors').textContent = s.yellow_majors;
+    document.getElementById('green-fouls').textContent = s.green_fouls;
+    document.getElementById('green-majors').textContent = s.green_majors;
+    setClock(s);
 
-    document.getElementById('red-side').classList.toggle('leading', s.red_score > s.blue_score);
-    document.getElementById('blue-side').classList.toggle('leading', s.blue_score > s.red_score);
-
-    const timer = document.getElementById('timer');
-    timer.textContent = fmtTime(s.timer_remaining);
-    timer.className = 'timer';
-    if (s.timer_remaining <= 0) {
-      timer.classList.add('done');
-    } else if (s.timer_remaining <= 10) {
-      timer.classList.add('low');
-      if (s.timer_running) timer.classList.add('pulse');
-    } else if (s.timer_remaining <= 30) {
-      timer.classList.add('warn');
-    }
+    document.getElementById('yellow-side').classList.toggle('leading', s.yellow_score > s.green_score);
+    document.getElementById('green-side').classList.toggle('leading', s.green_score > s.yellow_score);
   } catch (e) { /* keep last known values if the network hiccups */ }
 }
 refresh();
