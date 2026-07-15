@@ -8,17 +8,30 @@
   </header>
   <main class="adjust">
     <div id="score" class="panel-score">&ndash;</div>
+    <div id="foul-info" class="foul-info"></div>
     <div class="btn-grid">
       <button class="adj-btn plus" data-delta="1">+1</button>
       <button class="adj-btn plus" data-delta="2">+2</button>
+      <button class="adj-btn plus" data-delta="3">+3</button>
       <button class="adj-btn minus" data-delta="-1">&minus;1</button>
-      <button id="clear" class="adj-btn clear">CLEAR</button>
+      <button class="adj-btn foul" data-foul="foul">FOUL<small>+3</small></button>
+      <button class="adj-btn foul major" data-foul="major">MAJOR<small>+8</small></button>
+    </div>
+    <div class="btn-row-sm">
+      <button id="clear" class="sm-btn clear">CLEAR</button>
+      <button class="sm-btn" data-unfoul="foul">UNDO FOUL</button>
+      <button class="sm-btn" data-unfoul="major">UNDO MAJOR</button>
+    </div>
+    <div class="cheat">
+      Gem: L1 +1 &middot; L2 +2 &middot; L3 +3 (auto gems count again at match end)<br>
+      Left base in auto +1 &middot; parked at end +2 &middot; foul buttons = other team broke a rule, YOU get the points
     </div>
   </main>
 {% endblock %}
 {% block script %}
 <script>
 const TEAM = "{{ team }}";
+const OPP = TEAM === "red" ? "blue" : "red";
 let tapsInFlight = 0;
 let lastScore = null;
 
@@ -33,12 +46,14 @@ function apply(s) {
   lastScore = val;
   el.textContent = val;
   document.getElementById('team-name').textContent = s[TEAM + '_team'];
+  document.getElementById('foul-info').textContent =
+    'Fouls by ' + OPP.toUpperCase() + ': ' + s[OPP + '_fouls'] + ' · major: ' + s[OPP + '_majors'];
 }
 
-async function send(body) {
+async function send(url, body) {
   tapsInFlight++;
   try {
-    const r = await fetch('/api/adjust', {
+    const r = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(Object.assign({ team: TEAM }, body))
@@ -49,11 +64,19 @@ async function send(body) {
 }
 
 document.querySelectorAll('[data-delta]').forEach(btn =>
-  btn.addEventListener('click', () => send({ delta: parseInt(btn.dataset.delta, 10) }))
+  btn.addEventListener('click', () => send('/api/adjust', { delta: parseInt(btn.dataset.delta, 10) }))
+);
+
+document.querySelectorAll('[data-foul]').forEach(btn =>
+  btn.addEventListener('click', () => send('/api/foul', { kind: btn.dataset.foul }))
+);
+
+document.querySelectorAll('[data-unfoul]').forEach(btn =>
+  btn.addEventListener('click', () => send('/api/foul', { kind: btn.dataset.unfoul, undo: true }))
 );
 
 document.getElementById('clear').addEventListener('click', () => {
-  if (confirm('Clear the ' + TEAM.toUpperCase() + ' score to 0?')) send({ clear: true });
+  if (confirm('Clear the ' + TEAM.toUpperCase() + ' score to 0?')) send('/api/adjust', { clear: true });
 });
 
 async function refresh() {

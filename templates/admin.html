@@ -26,6 +26,7 @@
     </label>
     <label>Match length (seconds)
       <input id="timer-duration" type="number" min="5" max="3600" inputmode="numeric">
+      <span class="hint">GEM QUEST match = 150 (0:20 auto &middot; 1:40 driving &middot; 0:30 endgame)</span>
     </label>
     <button id="save" class="ctl save">Save</button>
     <div id="save-msg" class="msg"></div>
@@ -33,7 +34,7 @@
 
   <section class="card">
     <h2>Scores <span id="score-mini" class="mini"></span></h2>
-    <button id="reset-scores" class="ctl danger">Reset scores &amp; penalties to 0</button>
+    <button id="reset-scores" class="ctl danger">Reset scores &amp; fouls to 0</button>
   </section>
 
   <div class="foot-links">
@@ -94,7 +95,7 @@ document.getElementById('save').addEventListener('click', async () => {
 });
 
 document.getElementById('reset-scores').addEventListener('click', () => {
-  if (confirm('Reset both scores and penalties to 0?')) {
+  if (confirm('Reset both scores and fouls to 0?')) {
     post('/api/setup', { reset_scores: true }).catch(() => {});
   }
 });

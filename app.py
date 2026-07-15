@@ -6,7 +6,7 @@ from flask import Flask, g, jsonify, redirect, render_template, request, url_for
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DB_PATH = os.path.join(BASE_DIR, "scores.db")
-DEFAULT_DURATION = 120
+DEFAULT_DURATION = 150  # GEM QUEST match: 0:20 auto + 1:40 driving + 0:30 endgame
 
 app = Flask(__name__)
 
@@ -36,8 +36,10 @@ def init_db():
             blue_team TEXT NOT NULL DEFAULT '---',
             red_score INTEGER NOT NULL DEFAULT 0,
             blue_score INTEGER NOT NULL DEFAULT 0,
-            red_penalties INTEGER NOT NULL DEFAULT 0,
-            blue_penalties INTEGER NOT NULL DEFAULT 0,
+            red_fouls INTEGER NOT NULL DEFAULT 0,
+            red_majors INTEGER NOT NULL DEFAULT 0,
+            blue_fouls INTEGER NOT NULL DEFAULT 0,
+            blue_majors INTEGER NOT NULL DEFAULT 0,
             timer_duration INTEGER NOT NULL DEFAULT 120,
             timer_remaining REAL NOT NULL DEFAULT 120,
             timer_end REAL,
@@ -50,6 +52,13 @@ def init_db():
         " VALUES (1, ?, ?)",
         (DEFAULT_DURATION, DEFAULT_DURATION),
     )
+    # Databases created before foul tracking lack these columns.
+    existing = {row[1] for row in db.execute("PRAGMA table_info(match_state)")}
+    for col in ("red_fouls", "red_majors", "blue_fouls", "blue_majors"):
+        if col not in existing:
+            db.execute(
+                "ALTER TABLE match_state ADD COLUMN {0} INTEGER NOT NULL DEFAULT 0".format(col)
+            )
     db.commit()
     db.close()
 
@@ -80,8 +89,10 @@ def state_json():
             "blue_team": row["blue_team"],
             "red_score": row["red_score"],
             "blue_score": row["blue_score"],
-            "red_penalties": row["red_penalties"],
-            "blue_penalties": row["blue_penalties"],
+            "red_fouls": row["red_fouls"],
+            "red_majors": row["red_majors"],
+            "blue_fouls": row["blue_fouls"],
+            "blue_majors": row["blue_majors"],
             "timer_duration": row["timer_duration"],
             "timer_remaining": remaining,
             "timer_running": running,
@@ -128,11 +139,47 @@ def api_adjust():
         db.execute("UPDATE match_state SET {0} = 0 WHERE id = 1".format(col))
     else:
         delta = data.get("delta")
-        if delta not in (-1, 1, 2):
+        if delta not in (-1, 1, 2, 3):
             return jsonify({"error": "bad request"}), 400
         db.execute(
             "UPDATE match_state SET {0} = MAX(0, {0} + ?) WHERE id = 1".format(col),
             (delta,),
+        )
+    db.commit()
+    return state_json()
+
+
+FOUL_POINTS = {"foul": 3, "major": 8}
+
+
+@app.route("/api/foul", methods=["POST"])
+def api_foul():
+    """Record a foul: `team` is the team AWARDED the points; the other team
+    committed the foul and gets its foul count bumped. `undo` reverses one."""
+    data = request.get_json(silent=True) or {}
+    team = data.get("team")
+    kind = data.get("kind")
+    if team not in ("red", "blue") or kind not in FOUL_POINTS:
+        return jsonify({"error": "bad request"}), 400
+    offender = "blue" if team == "red" else "red"
+    points = FOUL_POINTS[kind]
+    count_col = offender + ("_fouls" if kind == "foul" else "_majors")
+    score_col = team + "_score"
+    db = get_db()
+    if data.get("undo"):
+        row = db.execute("SELECT * FROM match_state WHERE id = 1").fetchone()
+        if row[count_col] > 0:
+            db.execute(
+                "UPDATE match_state SET {0} = {0} - 1, {1} = MAX(0, {1} - ?)"
+                " WHERE id = 1".format(count_col, score_col),
+                (points,),
+            )
+    else:
+        db.execute(
+            "UPDATE match_state SET {0} = {0} + 1, {1} = {1} + ? WHERE id = 1".format(
+                count_col, score_col
+            ),
+            (points,),
         )
     db.commit()
     return state_json()
@@ -198,7 +245,8 @@ def api_setup():
     if data.get("reset_scores"):
         db.execute(
             "UPDATE match_state SET red_score = 0, blue_score = 0,"
-            " red_penalties = 0, blue_penalties = 0 WHERE id = 1"
+            " red_fouls = 0, red_majors = 0, blue_fouls = 0, blue_majors = 0"
+            " WHERE id = 1"
         )
     db.commit()
     return state_json()

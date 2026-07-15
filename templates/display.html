@@ -5,26 +5,43 @@
   <header class="disp-top">
     <div class="match-label">MATCH <span id="match-number">&ndash;</span></div>
     <div id="timer" class="timer">--:--</div>
+    <div id="phase" class="phase"></div>
   </header>
   <main class="alliances">
     <section class="alliance red" id="red-side">
       <div class="alliance-name">RED</div>
       <div class="team-name" id="red-team">---</div>
       <div class="score" id="red-score">0</div>
-      <div class="penalties">PENALTIES <span id="red-pen">0</span></div>
+      <div class="penalties">FOULS <span id="red-fouls">0</span> &middot; MAJOR <span id="red-majors">0</span></div>
     </section>
     <div class="vs">VS</div>
     <section class="alliance blue" id="blue-side">
       <div class="alliance-name">BLUE</div>
       <div class="team-name" id="blue-team">---</div>
       <div class="score" id="blue-score">0</div>
-      <div class="penalties">PENALTIES <span id="blue-pen">0</span></div>
+      <div class="penalties">FOULS <span id="blue-fouls">0</span> &middot; MAJOR <span id="blue-majors">0</span></div>
     </section>
   </main>
 {% endblock %}
 {% block script %}
 <script>
 const last = { red: null, blue: null };
+
+// GEM QUEST match phases: 0:20 auto, then driving, last 0:30 is endgame.
+function setPhase(s) {
+  const el = document.getElementById('phase');
+  const dur = s.timer_duration, rem = s.timer_remaining;
+  let label = '', cls = 'phase';
+  if (dur >= 60) {
+    if (rem <= 0) { label = 'MATCH OVER'; cls += ' done'; }
+    else if (!s.timer_running && rem >= dur) { label = 'PRE-MATCH'; }
+    else if (dur - rem < 20) { label = 'AUTO ×2'; cls += ' auto'; }
+    else if (rem <= 30) { label = 'ENDGAME — PARK!'; cls += ' endgame'; }
+    else { label = 'DRIVER CONTROL'; cls += ' driver'; }
+  }
+  el.textContent = label;
+  el.className = cls;
+}
 
 function setScore(team, val) {
   const el = document.getElementById(team + '-score');
@@ -45,8 +62,11 @@ async function refresh() {
     document.getElementById('blue-team').textContent = s.blue_team;
     setScore('red', s.red_score);
     setScore('blue', s.blue_score);
-    document.getElementById('red-pen').textContent = s.red_penalties;
-    document.getElementById('blue-pen').textContent = s.blue_penalties;
+    document.getElementById('red-fouls').textContent = s.red_fouls;
+    document.getElementById('red-majors').textContent = s.red_majors;
+    document.getElementById('blue-fouls').textContent = s.blue_fouls;
+    document.getElementById('blue-majors').textContent = s.blue_majors;
+    setPhase(s);
 
     document.getElementById('red-side').classList.toggle('leading', s.red_score > s.blue_score);
     document.getElementById('blue-side').classList.toggle('leading', s.blue_score > s.red_score);

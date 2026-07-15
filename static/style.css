@@ -130,14 +130,31 @@ button { font-family: inherit; cursor: pointer; border: none; color: var(--text)
 }
 
 .penalties {
-  font-size: 3.4vh;
+  font-size: 2.8vh;
   font-weight: 700;
   color: var(--yellow);
-  letter-spacing: 0.18em;
+  letter-spacing: 0.12em;
   padding: 0.8vh 2.4vh;
   border-radius: 5vh;
   background: rgba(0, 0, 0, 0.28);
+  white-space: nowrap;
 }
+
+.phase {
+  min-height: 4.6vh;
+  font-size: 3.2vh;
+  font-weight: 800;
+  letter-spacing: 0.3em;
+  padding: 0.4vh 3vh;
+  border-radius: 5vh;
+  background: rgba(0, 0, 0, 0.35);
+  color: var(--dim);
+}
+
+.phase.auto { color: var(--yellow); }
+.phase.driver { color: #35d46a; }
+.phase.endgame { color: #ff6a3d; animation: pulse 1s infinite; }
+.phase.done { color: #ff453a; }
 
 .vs {
   position: absolute;
@@ -263,14 +280,14 @@ button { font-family: inherit; cursor: pointer; border: none; color: var(--text)
 .btn-grid {
   flex: 1.15;
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1fr 1fr 1fr;
   grid-template-rows: 1fr 1fr;
-  gap: 3vw;
+  gap: 2.5vw;
   min-height: 0;
 }
 
 .adj-btn {
-  font-size: clamp(2.2rem, 11vw, 5.5rem);
+  font-size: clamp(1.8rem, 9vw, 4.5rem);
   font-weight: 800;
   border-radius: 5vw;
   border: 1px solid rgba(255, 255, 255, 0.16);
@@ -293,15 +310,67 @@ button { font-family: inherit; cursor: pointer; border: none; color: var(--text)
   box-shadow: 0 10px 24px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.14);
 }
 
-.adj-btn.clear {
-  font-size: clamp(1.3rem, 6vw, 3rem);
+.adj-btn.foul {
+  font-size: clamp(1.2rem, 5.5vw, 2.8rem);
+  letter-spacing: 0.08em;
+  background: linear-gradient(165deg, #f2a516, #7a4d05);
+  box-shadow: 0 10px 24px rgba(242, 165, 22, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.3);
+}
+
+.adj-btn.foul.major {
+  background: linear-gradient(165deg, #ff7a45, #7a1d06);
+  box-shadow: 0 10px 24px rgba(255, 106, 61, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.3);
+}
+
+.adj-btn.foul small {
+  display: block;
+  font-size: 0.55em;
+  font-weight: 700;
   letter-spacing: 0.2em;
+  opacity: 0.85;
+}
+
+.adj-btn:active { transform: scale(0.96); filter: brightness(1.25); }
+
+.btn-row-sm { display: flex; gap: 2.5vw; }
+
+.sm-btn {
+  flex: 1;
+  font-size: clamp(0.85rem, 3.6vw, 1.4rem);
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  padding: 0.9rem 0.3rem;
+  border-radius: 3vw;
+  color: var(--dim);
+  background: linear-gradient(180deg, #2a2a34, #1c1c24);
+  border: 1px solid var(--edge);
+  user-select: none;
+  transition: transform 0.08s ease;
+}
+
+.sm-btn.clear {
   color: #ff9aa2;
   background: rgba(224, 36, 58, 0.08);
   border: 2px solid rgba(224, 36, 58, 0.55);
 }
 
-.adj-btn:active { transform: scale(0.96); filter: brightness(1.25); }
+.sm-btn:active { transform: scale(0.96); filter: brightness(1.25); }
+
+.foul-info {
+  text-align: center;
+  font-size: clamp(0.85rem, 3.6vw, 1.2rem);
+  font-weight: 700;
+  color: var(--yellow);
+  letter-spacing: 0.06em;
+  min-height: 1.2em;
+}
+
+.cheat {
+  text-align: center;
+  font-size: clamp(0.7rem, 3vw, 1rem);
+  line-height: 1.5;
+  color: var(--dim);
+}
 
 /* ===== Admin ===== */
 .admin {
@@ -387,3 +456,5 @@ button { font-family: inherit; cursor: pointer; border: none; color: var(--text)
 .ctl.danger { background: linear-gradient(180deg, #b3132b, #5c0813); }
 
 .msg { min-height: 1.2rem; font-size: 0.95rem; color: var(--yellow); }
+
+.hint { font-size: 0.8rem; color: var(--dim); }
