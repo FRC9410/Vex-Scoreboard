@@ -9,24 +9,20 @@
     <main id="rot-grid" class="rot-grid"></main>
   </div>
 
-  <div id="view-next" class="view hidden">
-    <main class="upnext">
-      <div class="upnext-label">UP NEXT</div>
-      <div id="un-match" class="upnext-match">MATCH &ndash;</div>
-      <div class="upnext-teams">
-        <div class="upnext-card yellow"><div class="upnext-side">YELLOW</div><div id="un-yellow" class="upnext-name">&ndash;</div></div>
-        <div class="upnext-vs">VS</div>
-        <div class="upnext-card green"><div class="upnext-side">GREEN</div><div id="un-green" class="upnext-name">&ndash;</div></div>
-      </div>
-      <div id="un-ondeck" class="upnext-ondeck"></div>
-      <div id="un-bye" class="upnext-bye"></div>
-    </main>
+  <div id="view-rank" class="view hidden">
+    <header class="sched-top">
+      <div class="sched-title">RANKINGS</div>
+    </header>
+    <main id="rank-list" class="rank-list"></main>
+    <div class="rank-legend">WIN = 2 RP &middot; TIE = 1 RP &middot; ties broken by total points scored, then fewest penalty points</div>
   </div>
+
+  <footer id="next-bar" class="next-bar"></footer>
 {% endblock %}
 {% block script %}
 <script>
 const BRACKET_MS = 15000;  // how long the full bracket stays up
-const UPNEXT_MS = 8000;    // how long "up next" stays up
+const RANK_MS = 12000;     // how long the rankings stay up
 
 let sched = null;
 
@@ -65,18 +61,48 @@ function renderBracket() {
   ).join('');
 }
 
-function renderUpNext() {
+function renderRankings() {
+  const list = document.getElementById('rank-list');
+  list.innerHTML =
+    '<div class="rank-row head">' +
+    '<span class="rk-pos">#</span>' +
+    '<span class="rk-team">TEAM</span>' +
+    '<span>W-L-T</span>' +
+    '<span>RP</span>' +
+    '<span>PTS</span>' +
+    '<span>FOULS</span>' +
+    '</div>' +
+    sched.rankings.map((t, i) =>
+      '<div class="rank-row' + (i < 3 ? ' top' + (i + 1) : '') + '">' +
+      '<span class="rk-pos">' + (i + 1) + '</span>' +
+      '<span class="rk-team">' + t.team + '</span>' +
+      '<span>' + t.wins + '-' + t.losses + '-' + t.ties + '</span>' +
+      '<span class="rk-rp">' + t.rp + '</span>' +
+      '<span>' + t.points + '</span>' +
+      '<span>' + (t.fouls + t.majors) + '</span>' +
+      '</div>'
+    ).join('');
+}
+
+function renderNextBar() {
+  const bar = document.getElementById('next-bar');
   const cur = sched.matches[sched.current];
-  document.getElementById('un-match').textContent =
-    'MATCH ' + cur.n + ' · ROTATION ' + cur.rotation;
-  document.getElementById('un-yellow').textContent = cur.yellow;
-  document.getElementById('un-green').textContent = cur.green;
+  const isLast = sched.current === sched.matches.length - 1;
+  if (isLast && cur.result) {
+    bar.innerHTML = '<span class="nb-label">ALL MATCHES COMPLETE</span>';
+    return;
+  }
   const next = sched.matches[sched.current + 1];
-  document.getElementById('un-ondeck').textContent =
-    next ? 'ON DECK: ' + next.yellow + ' vs ' + next.green + ' (Match ' + next.n + ')'
-         : 'FINAL MATCH OF THE DAY';
-  document.getElementById('un-bye').textContent =
-    'SITTING OUT: ' + sched.byes[cur.rotation];
+  bar.innerHTML =
+    '<span class="nb-label">UP NEXT</span>' +
+    '<span class="nb-match">MATCH ' + cur.n + '</span>' +
+    '<span class="nb-teams"><span class="nb-y">' + cur.yellow + '</span>' +
+    '<span class="nb-vs">vs</span>' +
+    '<span class="nb-g">' + cur.green + '</span></span>' +
+    '<span class="nb-bye">BYE: ' + sched.byes[cur.rotation] + '</span>' +
+    '<span class="nb-ondeck">' +
+    (next ? 'ON DECK: ' + next.yellow + ' vs ' + next.green : 'FINAL MATCH') +
+    '</span>';
 }
 
 async function refresh() {
@@ -85,7 +111,8 @@ async function refresh() {
     if (!r.ok) return;
     sched = await r.json();
     renderBracket();
-    renderUpNext();
+    renderRankings();
+    renderNextBar();
   } catch (e) { /* keep last known schedule */ }
 }
 refresh();
@@ -95,8 +122,8 @@ let showingBracket = true;
 function flip() {
   showingBracket = !showingBracket;
   document.getElementById('view-bracket').classList.toggle('hidden', !showingBracket);
-  document.getElementById('view-next').classList.toggle('hidden', showingBracket);
-  setTimeout(flip, showingBracket ? BRACKET_MS : UPNEXT_MS);
+  document.getElementById('view-rank').classList.toggle('hidden', showingBracket);
+  setTimeout(flip, showingBracket ? BRACKET_MS : RANK_MS);
 }
 setTimeout(flip, BRACKET_MS);
 </script>

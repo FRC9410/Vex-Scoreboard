@@ -114,10 +114,21 @@ def init_db():
         CREATE TABLE IF NOT EXISTS results (
             match_index INTEGER PRIMARY KEY,
             yellow_score INTEGER NOT NULL,
-            green_score INTEGER NOT NULL
+            green_score INTEGER NOT NULL,
+            yellow_fouls INTEGER NOT NULL DEFAULT 0,
+            yellow_majors INTEGER NOT NULL DEFAULT 0,
+            green_fouls INTEGER NOT NULL DEFAULT 0,
+            green_majors INTEGER NOT NULL DEFAULT 0
         )
         """
     )
+    # Older databases saved only the final scores per match.
+    existing_results = {row[1] for row in db.execute("PRAGMA table_info(results)")}
+    for col in ("yellow_fouls", "yellow_majors", "green_fouls", "green_majors"):
+        if col not in existing_results:
+            db.execute(
+                "ALTER TABLE results ADD COLUMN {0} INTEGER NOT NULL DEFAULT 0".format(col)
+            )
     for col, default in (
         ("yellow_fouls", 0),
         ("yellow_majors", 0),
@@ -223,6 +234,56 @@ def api_state():
     return state_json()
 
 
+def compute_rankings(db):
+    """Standings from completed matches: Win = 2 ranking points, Tie = 1.
+    Ties broken by total match points scored, then fewest penalty points
+    given away (foul = 1, major = 5), then team name."""
+    stats = {}
+    for m in MATCHES:
+        for name in (m["yellow"], m["green"]):
+            stats.setdefault(
+                name,
+                {
+                    "team": name,
+                    "played": 0,
+                    "wins": 0,
+                    "losses": 0,
+                    "ties": 0,
+                    "rp": 0,
+                    "points": 0,
+                    "fouls": 0,
+                    "majors": 0,
+                    "penalty_points": 0,
+                },
+            )
+    for r in db.execute("SELECT * FROM results"):
+        idx = r["match_index"]
+        if not 0 <= idx < len(MATCHES):
+            continue
+        m = MATCHES[idx]
+        for side, opp in (("yellow", "green"), ("green", "yellow")):
+            s = stats[m[side]]
+            s["played"] += 1
+            s["points"] += r[side + "_score"]
+            s["fouls"] += r[side + "_fouls"]
+            s["majors"] += r[side + "_majors"]
+            if r[side + "_score"] > r[opp + "_score"]:
+                s["wins"] += 1
+            elif r[side + "_score"] < r[opp + "_score"]:
+                s["losses"] += 1
+            else:
+                s["ties"] += 1
+    for s in stats.values():
+        s["rp"] = 2 * s["wins"] + s["ties"]
+        s["penalty_points"] = (
+            s["fouls"] * FOUL_POINTS["foul"] + s["majors"] * FOUL_POINTS["major"]
+        )
+    return sorted(
+        stats.values(),
+        key=lambda s: (-s["rp"], -s["points"], s["penalty_points"], s["team"]),
+    )
+
+
 @app.route("/api/schedule")
 def api_schedule():
     db = get_db()
@@ -246,6 +307,7 @@ def api_schedule():
             "current": row["schedule_index"],
             "matches": matches,
             "byes": {rot["rotation"]: rot["bye"] for rot in SCHEDULE},
+            "rankings": compute_rankings(db),
         }
     )
 
@@ -265,9 +327,18 @@ def api_next_match():
 
     if direction == 1:
         db.execute(
-            "INSERT OR REPLACE INTO results (match_index, yellow_score, green_score)"
-            " VALUES (?, ?, ?)",
-            (idx, row["yellow_score"], row["green_score"]),
+            "INSERT OR REPLACE INTO results (match_index, yellow_score, green_score,"
+            " yellow_fouls, yellow_majors, green_fouls, green_majors)"
+            " VALUES (?, ?, ?, ?, ?, ?, ?)",
+            (
+                idx,
+                row["yellow_score"],
+                row["green_score"],
+                row["yellow_fouls"],
+                row["yellow_majors"],
+                row["green_fouls"],
+                row["green_majors"],
+            ),
         )
         new_idx = min(idx + 1, len(MATCHES) - 1)
     else:
@@ -276,16 +347,35 @@ def api_next_match():
     saved = db.execute(
         "SELECT * FROM results WHERE match_index = ?", (new_idx,)
     ).fetchone()
-    yellow_score = saved["yellow_score"] if (direction == -1 and saved) else 0
-    green_score = saved["green_score"] if (direction == -1 and saved) else 0
+    restore = saved if (direction == -1 and saved) else None
+    fields = (
+        "yellow_score",
+        "green_score",
+        "yellow_fouls",
+        "yellow_majors",
+        "green_fouls",
+        "green_majors",
+    )
+    restored = {f: (restore[f] if restore else 0) for f in fields}
 
     match = MATCHES[new_idx]
     db.execute(
         "UPDATE match_state SET schedule_index = ?, match_number = ?,"
         " yellow_team = ?, green_team = ?, yellow_score = ?, green_score = ?,"
-        " yellow_fouls = 0, yellow_majors = 0, green_fouls = 0, green_majors = 0,"
+        " yellow_fouls = ?, yellow_majors = ?, green_fouls = ?, green_majors = ?,"
         " timer_running = 0, timer_remaining = timer_duration WHERE id = 1",
-        (new_idx, new_idx + 1, match["yellow"], match["green"], yellow_score, green_score),
+        (
+            new_idx,
+            new_idx + 1,
+            match["yellow"],
+            match["green"],
+            restored["yellow_score"],
+            restored["green_score"],
+            restored["yellow_fouls"],
+            restored["yellow_majors"],
+            restored["green_fouls"],
+            restored["green_majors"],
+        ),
     )
     db.commit()
     return state_json()
