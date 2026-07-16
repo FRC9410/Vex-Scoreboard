@@ -7,30 +7,24 @@
     <div class="live-chip"><span class="live-dot"></span>LIVE</div>
   </div>
 
-  <div id="info-panel" class="info-panel">
-    <div id="view-bracket" class="view">
-      <header class="sched-top">
-        <div class="sched-title">MATCH SCHEDULE</div>
-      </header>
+  <div class="panels">
+    <section class="panel-half">
+      <div class="half-title">MATCH SCHEDULE</div>
       <main id="rot-grid" class="rot-grid"></main>
-    </div>
-
-    <div id="view-rank" class="view hidden">
-      <header class="sched-top">
-        <div class="sched-title">RANKINGS</div>
-      </header>
+    </section>
+    <section class="panel-half">
+      <div class="half-title">RANKINGS</div>
       <main id="rank-list" class="rank-list"></main>
       <div class="rank-legend">WIN = 2 RP &middot; TIE = 1 RP &middot; ties broken by total points scored, then fewest penalty points</div>
-    </div>
-
-    <footer id="next-bar" class="next-bar"></footer>
+    </section>
   </div>
+
+  <footer id="next-bar" class="next-bar"></footer>
+
+  <button id="video-toggle" class="video-toggle hidden">HIDE VIDEO</button>
 {% endblock %}
 {% block script %}
 <script>
-const BRACKET_MS = 15000;  // how long the full bracket stays up
-const RANK_MS = 12000;     // how long the rankings stay up
-
 let sched = null;
 
 function matchRow(m, current) {
@@ -125,41 +119,49 @@ async function refresh() {
 refresh();
 setInterval(refresh, 3000);
 
-let showingBracket = true;
-function flip() {
-  showingBracket = !showingBracket;
-  document.getElementById('view-bracket').classList.toggle('hidden', !showingBracket);
-  document.getElementById('view-rank').classList.toggle('hidden', showingBracket);
-  setTimeout(flip, showingBracket ? BRACKET_MS : RANK_MS);
-}
-setTimeout(flip, BRACKET_MS);
-
-// Live camera feed: fills the screen when the camera is up, with the match
-// info compressed into a strip at the bottom. Until the camera exists (or if
-// it drops), the page falls back to the full-screen schedule automatically.
-// Default stream is ustreamer on this same host, port 8081; override with
-// ?stream=<url> if the camera lives somewhere else.
+// Live camera feed: when the camera is up (and not hidden with the on-screen
+// button), the video fills the top of the screen and the schedule/rankings
+// compress into the bottom strip. Default stream is ustreamer on this same
+// host, port 8081; override with ?stream=<url>. Start hidden with ?video=0.
 const params = new URLSearchParams(location.search);
 const STREAM_URL = params.get('stream') ||
   location.protocol + '//' + location.hostname + ':8081/stream';
 const STREAM_CHECK_MS = 10000;
 
 const streamImg = document.getElementById('stream');
+const toggleBtn = document.getElementById('video-toggle');
 
-function setVideoMode(on) {
+let cameraUp = false;
+let wantVideo = params.get('video') === '0' ? false
+  : localStorage.getItem('schedHideVideo') !== '1';
+
+function applyMode() {
+  const on = cameraUp && wantVideo;
   document.body.classList.toggle('video-on', on);
   document.getElementById('video-wrap').classList.toggle('hidden', !on);
+  toggleBtn.classList.toggle('hidden', !cameraUp);
+  toggleBtn.textContent = wantVideo ? 'HIDE VIDEO' : 'SHOW VIDEO';
 }
-
-streamImg.addEventListener('load', () => setVideoMode(true));
-streamImg.addEventListener('error', () => setVideoMode(false));
 
 function tryStream() {
   streamImg.src = STREAM_URL + (STREAM_URL.includes('?') ? '&' : '?') + 't=' + Date.now();
 }
 
-// Poll the camera: brings the video up when it appears, and drops back to
-// the full-screen schedule if it dies (instead of freezing on "LIVE").
+streamImg.addEventListener('load', () => { cameraUp = true; applyMode(); });
+streamImg.addEventListener('error', () => {
+  if (wantVideo) { cameraUp = false; applyMode(); }
+});
+
+toggleBtn.addEventListener('click', () => {
+  wantVideo = !wantVideo;
+  localStorage.setItem('schedHideVideo', wantVideo ? '0' : '1');
+  if (wantVideo) tryStream();
+  else streamImg.src = '';
+  applyMode();
+});
+
+// Poll the camera: brings the video up when it appears, drops back to the
+// schedule if it dies, and keeps the toggle button in sync either way.
 async function checkStream() {
   const ctl = new AbortController();
   const timeout = setTimeout(() => ctl.abort(), 4000);
@@ -170,10 +172,11 @@ async function checkStream() {
   } catch (e) { ok = false; }
   clearTimeout(timeout);
   ctl.abort(); // close the probe connection so we don't hold the stream open
-  if (ok && !document.body.classList.contains('video-on')) tryStream();
-  if (!ok) setVideoMode(false);
+  if (ok && wantVideo && !cameraUp) tryStream();
+  if (ok !== cameraUp && (!ok || !wantVideo)) { cameraUp = ok; applyMode(); }
 }
-tryStream();
+if (wantVideo) tryStream();
 setInterval(checkStream, STREAM_CHECK_MS);
+checkStream();
 </script>
 {% endblock %}

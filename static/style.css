@@ -193,31 +193,38 @@ button { font-family: inherit; cursor: pointer; border: none; color: var(--text)
   flex-direction: column;
 }
 
-.schedule .view {
+/* Schedule bottom-left, rankings bottom-right — always both visible */
+.panels {
   flex: 1;
   min-height: 0;
   display: flex;
-  flex-direction: column;
-  opacity: 1;
-  transition: opacity 0.6s ease;
+  gap: 1.4vh;
+  padding: 1vh 1.4vh;
 }
-.schedule .view.hidden { display: none; opacity: 0; }
 
-.sched-top { text-align: center; padding: 2vh 0 1vh; }
+.panel-half {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6vh;
+}
 
-.sched-title {
-  font-size: 4.5vh;
+.half-title {
+  text-align: center;
+  font-size: 2.6vh;
   font-weight: 800;
-  letter-spacing: 0.4em;
+  letter-spacing: 0.35em;
   color: var(--dim);
+  padding-top: 0.6vh;
 }
 
 .rot-grid {
   flex: 1;
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 1.5vh;
-  padding: 1vh 1.5vh 1.5vh;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1vh;
   min-height: 0;
 }
 
@@ -287,21 +294,21 @@ button { font-family: inherit; cursor: pointer; border: none; color: var(--text)
   min-height: 0;
   display: flex;
   flex-direction: column;
-  gap: 1vh;
-  padding: 0.5vh 12vw 0.5vh;
+  gap: 0.8vh;
+  padding: 0 1vh;
 }
 
 .rank-row {
   flex: 1;
   display: grid;
-  grid-template-columns: 7vh 1fr 16vh 10vh 12vh 12vh;
+  grid-template-columns: 6vh 1fr 13vh 8vh 10vh 10vh;
   align-items: center;
-  gap: 1.5vh;
-  padding: 0 2.5vh;
+  gap: 1.2vh;
+  padding: 0 2vh;
   border-radius: 1.5vh;
   border: 0.3vh solid var(--edge);
   background: linear-gradient(180deg, #20202b, #17171f);
-  font-size: 3vh;
+  font-size: 2.7vh;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   text-align: center;
@@ -316,9 +323,9 @@ button { font-family: inherit; cursor: pointer; border: none; color: var(--text)
   letter-spacing: 0.15em;
 }
 
-.rank-row .rk-pos { font-size: 3.4vh; color: var(--dim); }
-.rank-row .rk-team { text-align: left; font-size: 3.6vh; font-weight: 800; }
-.rank-row .rk-rp { font-size: 3.4vh; font-weight: 800; }
+.rank-row .rk-pos { font-size: 3vh; color: var(--dim); }
+.rank-row .rk-team { text-align: left; font-size: 3.1vh; font-weight: 800; }
+.rank-row .rk-rp { font-size: 3vh; font-weight: 800; }
 
 .rank-row.top1 {
   border-color: rgba(255, 214, 90, 0.75);
@@ -377,14 +384,7 @@ button { font-family: inherit; cursor: pointer; border: none; color: var(--text)
 
 .nb-bye, .nb-ondeck { font-size: 2.2vh; color: var(--dim); letter-spacing: 0.08em; }
 
-/* Live camera feed: video on top, match info compressed to a bottom strip */
-.info-panel {
-  flex: 1;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-}
-
+/* Live camera feed: video on top, schedule + rankings side by side below */
 .video-wrap {
   position: relative;
   flex: 1;
@@ -424,41 +424,60 @@ button { font-family: inherit; cursor: pointer; border: none; color: var(--text)
   animation: pulse 1.4s infinite;
 }
 
-.schedule.video-on .info-panel { flex: 0 0 30vh; }
-.schedule.video-on .sched-top { display: none; }
+/* Button to hide the video and show only schedule + rankings */
+.video-toggle {
+  position: fixed;
+  top: 1.5vh;
+  right: 1.5vh;
+  z-index: 10;
+  font-size: 1.7vh;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  padding: 0.8vh 1.6vh;
+  border-radius: 4vh;
+  color: var(--dim);
+  background: rgba(0, 0, 0, 0.55);
+  border: 0.2vh solid var(--edge);
+}
+.video-toggle.hidden { display: none; }
+.video-toggle:active { filter: brightness(1.5); }
+
+/* With the video up, the two panels compress into the bottom strip */
+.schedule.video-on .panels { flex: 0 0 34vh; padding: 0.6vh 1vh; gap: 1vh; }
 .schedule.video-on .rank-legend { display: none; }
+.schedule.video-on .half-title { font-size: 1.6vh; letter-spacing: 0.2em; padding-top: 0.2vh; }
 
 .schedule.video-on .rot-grid {
-  grid-template-columns: repeat(7, 1fr);
-  gap: 0.8vh;
-  padding: 0.8vh;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.6vh;
 }
-.schedule.video-on .rot-card { padding: 0.7vh; gap: 0.4vh; border-radius: 1vh; }
-.schedule.video-on .rot-title { font-size: 1.5vh; letter-spacing: 0.15em; }
+.schedule.video-on .rot-card { padding: 0.5vh; gap: 0.2vh; border-radius: 1vh; border-width: 0.2vh; }
+.schedule.video-on .rot-title { font-size: 1.3vh; letter-spacing: 0.15em; }
 .schedule.video-on .match-row {
-  grid-template-columns: 1.8vh 1fr auto 1fr;
-  gap: 0.5vh;
-  padding: 0 0.5vh;
-  font-size: 1.6vh;
+  grid-template-columns: 1.4vh 1fr auto 1fr;
+  gap: 0.4vh;
+  padding: 0 0.4vh;
+  font-size: 1.5vh;
   border-width: 0.2vh;
+  border-radius: 0.6vh;
 }
-.schedule.video-on .mr-num { font-size: 1.3vh; }
-.schedule.video-on .mr-mid { font-size: 1.4vh; min-width: 3.5vh; }
-.schedule.video-on .bye-row { font-size: 1.3vh; letter-spacing: 0.1em; }
+.schedule.video-on .mr-num { font-size: 1.1vh; }
+.schedule.video-on .mr-mid { font-size: 1.3vh; min-width: 3vh; }
+.schedule.video-on .bye-row { font-size: 1.1vh; letter-spacing: 0.1em; }
 
-.schedule.video-on .rank-list { padding: 0.8vh 8vw 0.4vh; gap: 0.5vh; }
+.schedule.video-on .rank-list { padding: 0 0.5vh; gap: 0.4vh; }
 .schedule.video-on .rank-row {
-  grid-template-columns: 5vh 1fr 12vh 8vh 9vh 9vh;
-  gap: 1vh;
-  padding: 0 1.5vh;
-  border-radius: 1vh;
+  grid-template-columns: 4vh 1fr 10vh 6vh 8vh 8vh;
+  gap: 0.8vh;
+  padding: 0 1.2vh;
+  border-radius: 0.8vh;
   border-width: 0.2vh;
-  font-size: 1.9vh;
+  font-size: 1.8vh;
 }
-.schedule.video-on .rank-row.head { flex: 0 0 2.4vh; font-size: 1.4vh; }
-.schedule.video-on .rank-row .rk-pos { font-size: 2.1vh; }
-.schedule.video-on .rank-row .rk-team { font-size: 2.2vh; }
-.schedule.video-on .rank-row .rk-rp { font-size: 2.1vh; }
+.schedule.video-on .rank-row.head { flex: 0 0 2.2vh; font-size: 1.3vh; }
+.schedule.video-on .rank-row .rk-pos { font-size: 1.9vh; }
+.schedule.video-on .rank-row .rk-team { font-size: 2vh; }
+.schedule.video-on .rank-row .rk-rp { font-size: 1.9vh; }
 
 .schedule.video-on .next-bar { flex: 0 0 6vh; font-size: 2.2vh; gap: 2.5vh; }
 .schedule.video-on .nb-label { font-size: 2vh; }
