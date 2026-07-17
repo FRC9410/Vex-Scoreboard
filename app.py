@@ -724,27 +724,35 @@ def elim_step(db, row, direction):
     game = row["elim_game"]
 
     if direction == 1:
-        if row["yellow_score"] == row["green_score"]:
-            return jsonify({"error": "elimination games can't end in a tie —"
-                            " someone has to win the game before you advance"}), 400
-        db.execute(
-            "INSERT OR REPLACE INTO elim_games (match_index, game_number, {0})"
-            " VALUES (?, ?, ?, ?, ?, ?, ?, ?)".format(", ".join(RESULT_FIELDS)),
-            (idx, game) + tuple(row[f] for f in RESULT_FIELDS),
-        )
-        bracket = resolve_bracket(db)
-        cur = bracket["matches"][idx]
+        cur = slots[idx]
         if not cur["series_done"]:
-            # Same match, next game.
-            load_match(db, "elims", idx, (cur["yellow"], cur["green"]), None, game + 1)
-            db.commit()
-            return state_json()
+            # The match isn't decided from its saved games yet, so treat the
+            # live scoreboard as the result of the current game and save it.
+            if row["yellow_score"] == row["green_score"]:
+                return jsonify({"error": "this match isn't decided yet — enter a"
+                                " winning game score (in the live scoreboard or the"
+                                " Eliminations editor) before advancing"}), 400
+            db.execute(
+                "INSERT OR REPLACE INTO elim_games (match_index, game_number, {0})"
+                " VALUES (?, ?, ?, ?, ?, ?, ?, ?)".format(", ".join(RESULT_FIELDS)),
+                (idx, game) + tuple(row[f] for f in RESULT_FIELDS),
+            )
+            bracket = resolve_bracket(db)
+            cur = bracket["matches"][idx]
+            if not cur["series_done"]:
+                # Series still going (best-of-N): line up the next game.
+                load_match(db, "elims", idx, (cur["yellow"], cur["green"]), None, game + 1)
+                db.commit()
+                return state_json()
+            slots = bracket["matches"]
+        # The current match is decided (either just now, or already entered in
+        # the editor) — advance to the next bracket match.
         new_idx = min(idx + 1, len(slots) - 1)
         if new_idx == idx:
             # That was the grand final — leave it on the board.
             db.commit()
             return state_json()
-        nxt = bracket["matches"][new_idx]
+        nxt = slots[new_idx]
         if not nxt["decided"]:
             return jsonify({"error": "the next bracket match isn't decided yet"}), 400
         load_match(db, "elims", new_idx, (nxt["yellow"], nxt["green"]), None, 1)
