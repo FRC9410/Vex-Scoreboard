@@ -245,31 +245,32 @@ button { font-family: inherit; cursor: pointer; border: none; color: var(--text)
   padding-top: 0.6vh;
 }
 
-.rot-grid {
+/* Flat quali schedule: one scrolling column of match rows. Overflow is
+   hidden because the page auto-scrolls it from JS (scrollTop still works). */
+.sched-list {
   flex: 1;
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 1vh;
   min-height: 0;
-}
-
-.rot-card {
-  background: linear-gradient(180deg, #20202b, #17171f);
-  border: 0.3vh solid var(--edge);
-  border-radius: 1.5vh;
-  padding: 1.2vh;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
   gap: 0.8vh;
 }
 
-.rot-title {
-  text-align: center;
-  font-size: 2.2vh;
-  font-weight: 800;
-  letter-spacing: 0.25em;
-  color: var(--dim);
+.sched-list .match-row {
+  flex: 0 0 5.6vh;
+  grid-template-columns: 6vh 1fr auto 1fr;
+  padding: 0 1.8vh;
+  font-size: 2.8vh;
+  background: linear-gradient(180deg, #20202b, #17171f);
+  border-color: var(--edge);
+  border-radius: 1.2vh;
 }
+.sched-list .match-row.current {
+  border-color: rgba(255, 255, 255, 0.55);
+  background: linear-gradient(180deg, #262633, #1a1a24);
+}
+.sched-list .mr-num { font-size: 2.2vh; }
+.sched-list .mr-mid { font-size: 2.4vh; min-width: 9vh; }
 
 .match-row {
   flex: 1;
@@ -296,6 +297,7 @@ button { font-family: inherit; cursor: pointer; border: none; color: var(--text)
 .mr-num { color: var(--dim); font-size: 1.9vh; }
 .mr-name.yellow { color: var(--a-text); text-align: right; }
 .mr-name.green { color: var(--b-text); text-align: left; }
+.mr-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .mr-mid {
   color: var(--text);
   font-variant-numeric: tabular-nums;
@@ -304,14 +306,6 @@ button { font-family: inherit; cursor: pointer; border: none; color: var(--text)
   text-align: center;
 }
 .match-row:not(.done) .mr-mid { color: var(--dim); }
-
-.bye-row {
-  text-align: center;
-  font-size: 1.9vh;
-  font-weight: 700;
-  letter-spacing: 0.15em;
-  color: var(--dim);
-}
 
 /* Rankings view */
 .rank-list {
@@ -621,23 +615,18 @@ button { font-family: inherit; cursor: pointer; border: none; color: var(--text)
 .schedule.video-on .rank-legend { display: none; }
 .schedule.video-on .half-title { font-size: 1.6vh; letter-spacing: 0.2em; padding-top: 0.2vh; }
 
-.schedule.video-on .rot-grid {
-  grid-template-columns: repeat(4, 1fr);
-  gap: 0.6vh;
-}
-.schedule.video-on .rot-card { padding: 0.5vh; gap: 0.2vh; border-radius: 1vh; border-width: 0.2vh; }
-.schedule.video-on .rot-title { font-size: 1.3vh; letter-spacing: 0.15em; }
-.schedule.video-on .match-row {
-  grid-template-columns: 1.4vh 1fr auto 1fr;
+.schedule.video-on .sched-list { gap: 0.3vh; }
+.schedule.video-on .sched-list .match-row {
+  flex: 0 0 3vh;
+  grid-template-columns: 3.4vh 1fr auto 1fr;
   gap: 0.4vh;
-  padding: 0 0.4vh;
-  font-size: 1.5vh;
+  padding: 0 0.8vh;
+  font-size: 1.7vh;
   border-width: 0.2vh;
   border-radius: 0.6vh;
 }
-.schedule.video-on .mr-num { font-size: 1.1vh; }
-.schedule.video-on .mr-mid { font-size: 1.3vh; min-width: 3vh; }
-.schedule.video-on .bye-row { font-size: 1.1vh; letter-spacing: 0.1em; }
+.schedule.video-on .mr-num { font-size: 1.2vh; }
+.schedule.video-on .mr-mid { font-size: 1.4vh; min-width: 4vh; }
 
 .schedule.video-on .rank-list { padding: 0 0.5vh; gap: 0.4vh; }
 .schedule.video-on .rank-row {
