@@ -67,9 +67,12 @@
         <section class="card">
           <h2>Qualification Matches <span class="mini">click scores to edit &middot; &#9654; = put on scoreboard</span></h2>
           <div id="quali-list" class="quali-list"></div>
-          <div class="btn-row">
-            <button id="add-quali" class="ctl">+ Add match</button>
+          <div class="btn-row quali-bulk">
+            <input id="quali-count" type="number" min="1" max="100" value="1" inputmode="numeric" title="how many matches to add or remove">
+            <button id="add-quali" class="ctl">+ Add</button>
+            <button id="remove-quali" class="ctl danger">&minus; Remove last</button>
           </div>
+          <div id="fair-hint" class="hint"></div>
         </section>
       </div>
     </div>
@@ -310,20 +313,51 @@ function renderQualiList() {
   });
 }
 
-document.getElementById('add-quali').addEventListener('click', async () => {
+function qualiCount() {
+  const n = parseInt(document.getElementById('quali-count').value, 10);
+  return isNaN(n) ? 1 : Math.min(Math.max(n, 1), 100);
+}
+
+async function bulkQuali(action, count, okMsg) {
   const msg = document.getElementById('sched-msg');
   try {
     const r = await fetch('/api/quali_schedule', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'add' })
+      body: JSON.stringify({ action: action, count: count })
     });
     const d = await r.json();
     if (!r.ok) throw new Error(d.error || 'failed');
     await refreshSchedule(true);
-    msg.textContent = 'Match added — set its teams and Save.';
+    refresh();
+    msg.textContent = okMsg;
   } catch (e) { msg.textContent = e.message; }
   setTimeout(() => { msg.textContent = ''; }, 4000);
+}
+
+document.getElementById('add-quali').addEventListener('click', () => {
+  const n = qualiCount();
+  bulkQuali('add', n, n + ' match' + (n === 1 ? '' : 'es') + ' added — teams auto-filled for even play counts.');
 });
+
+document.getElementById('remove-quali').addEventListener('click', () => {
+  const n = qualiCount();
+  if (!confirm('Remove the last ' + n + ' match' + (n === 1 ? '' : 'es') + '? Any saved results for them are erased.')) return;
+  bulkQuali('remove', n, n + ' match' + (n === 1 ? '' : 'es') + ' removed.');
+});
+
+function updateFairHint() {
+  const el = document.getElementById('fair-hint');
+  const n = schedCache.fair_needed;
+  if (!schedCache.matches.length) { el.innerHTML = ''; return; }
+  if (n > 0) {
+    el.innerHTML = 'Play counts are uneven — add <b>' + n + '</b> more match' + (n === 1 ? '' : 'es') +
+      ' to even them out. <button id="fair-fill" class="q-btn">Add ' + n + ' now</button>';
+    document.getElementById('fair-fill').addEventListener('click', () =>
+      bulkQuali('add', n, n + ' match' + (n === 1 ? '' : 'es') + ' added — play counts are now even.'));
+  } else {
+    el.textContent = 'All teams have an equal number of scheduled matches. ✓';
+  }
+}
 
 async function doQualiEdit(body, okMsg) {
   const msg = document.getElementById('sched-msg');
@@ -678,6 +712,7 @@ async function refreshSchedule(force) {
     schedCache = fresh;
     if (force || phaseChanged || (!editing && !dirty)) {
       renderQualiList();
+      updateFairHint();
       renderElims();
       renderRoster();
       if (!cfgLoaded || force) fillConfig();

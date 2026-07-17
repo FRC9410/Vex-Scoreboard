@@ -332,6 +332,96 @@ def compute_byes(db, quali):
     return {rot: " / ".join(sorted(t)) if t else "—" for rot, t in byes.items()}
 
 
+def _quali_fill_stats(db):
+    """Per-team scheduled-match counts, yellow-side counts, and pairing counts
+    across the current quali schedule (used to auto-fill fair new matches)."""
+    roster = get_teams(db)
+    counts = {t: 0 for t in roster}
+    yellow_counts = {t: 0 for t in roster}
+    pair_counts = {}
+    matches = get_quali_matches(db)
+    for m in matches:
+        y, gn = m["yellow_team"], m["green_team"]
+        for t in (y, gn):
+            if t in counts:
+                counts[t] += 1
+        if y in yellow_counts:
+            yellow_counts[y] += 1
+        key = frozenset((y, gn))
+        pair_counts[key] = pair_counts.get(key, 0) + 1
+    return matches, counts, yellow_counts, pair_counts
+
+
+def fair_matches_needed(counts):
+    """Minimum number of appended matches so every team ends with the same
+    number of scheduled matches (each match plays two different teams)."""
+    vals = list(counts.values())
+    if len(vals) < 2:
+        return 0
+    mx = max(vals)
+    for target in range(mx, mx + 2 * len(vals) + 1):
+        need = [target - v for v in vals]
+        total = sum(need)
+        if total == 0:
+            return 0
+        if total % 2 == 0 and max(need) <= total // 2:
+            return total // 2
+    # Unreachable in practice (e.g. 2-team roster with unequal counts can
+    # never equalize); suggest topping everyone up to the max as a fallback.
+    return (sum(mx - v for v in vals) + 1) // 2
+
+
+def autofill_quali_matches(db, num):
+    """Append `num` quali matches, always picking the least-scheduled teams so
+    play counts stay even. Prefers fresh pairings, avoids back-to-back matches
+    when possible, and balances which side each team plays."""
+    matches, counts, yellow_counts, pair_counts = _quali_fill_stats(db)
+    roster = get_teams(db)
+    last_teams = (
+        {matches[-1]["yellow_team"], matches[-1]["green_team"]} if matches else set()
+    )
+    # Group appended matches into rotations so the schedule page's rotation
+    # cards and bye lines stay meaningful.
+    rot_size = max(1, len(roster) // 2)
+    last_rot = matches[-1]["rotation"] if matches else 0
+    rot_teams = set()
+    rot_count = rot_size  # force a fresh rotation for the first added match
+    idx = len(matches)
+    for _ in range(num):
+        order = sorted(
+            roster, key=lambda t: (counts[t], t in last_teams, random.random())
+        )
+        a = order[0]
+        b = min(
+            order[1:],
+            key=lambda t: (
+                counts[t],
+                pair_counts.get(frozenset((a, t)), 0),
+                t in last_teams,
+                random.random(),
+            ),
+        )
+        # Whoever has been yellow less takes the yellow side.
+        yellow, green = (a, b) if yellow_counts[a] <= yellow_counts[b] else (b, a)
+        if rot_count >= rot_size or a in rot_teams or b in rot_teams:
+            last_rot += 1
+            rot_teams, rot_count = set(), 0
+        db.execute(
+            "INSERT INTO quali_matches (match_index, rotation, yellow_team,"
+            " green_team) VALUES (?, ?, ?, ?)",
+            (idx, last_rot, yellow, green),
+        )
+        counts[a] += 1
+        counts[b] += 1
+        yellow_counts[yellow] += 1
+        key = frozenset((a, b))
+        pair_counts[key] = pair_counts.get(key, 0) + 1
+        last_teams = {a, b}
+        rot_teams |= {a, b}
+        rot_count += 1
+        idx += 1
+
+
 def compute_rankings(db, quali):
     """Standings from completed quali matches: Win = 2 RP, Tie = 1. Ties broken
     by total match points, then fewest penalty points given away, then name."""
@@ -658,11 +748,17 @@ def api_schedule():
             "full_result": {f: r[f] for f in RESULT_FIELDS} if r else None,
         })
     bracket = resolve_bracket(db) if row["phase"] == "elims" else None
+    counts = {t: 0 for t in get_teams(db)}
+    for m in quali:
+        for t in (m["yellow_team"], m["green_team"]):
+            if t in counts:
+                counts[t] += 1
     return jsonify({
         "phase": row["phase"],
         "teams": get_teams(db),
         "current": row["schedule_index"],
         "matches": matches,
+        "fair_needed": fair_matches_needed(counts),
         "byes": compute_byes(db, quali),
         "rankings": compute_rankings(db, quali),
         "config": cfg,
@@ -1126,17 +1222,44 @@ def api_quali_schedule():
     if action == "add":
         if len(roster) < 2:
             return jsonify({"error": "add at least two teams first"}), 400
-        count = quali_count(db)
-        last_rot = db.execute(
-            "SELECT COALESCE(MAX(rotation), 0) AS r FROM quali_matches"
-        ).fetchone()["r"]
-        db.execute(
-            "INSERT INTO quali_matches (match_index, rotation, yellow_team, green_team)"
-            " VALUES (?, ?, ?, ?)",
-            (count, last_rot + 1, roster[0], roster[1]),
-        )
+        try:
+            num = int(data.get("count", 1))
+        except (TypeError, ValueError):
+            return jsonify({"error": "bad match count"}), 400
+        num = min(max(num, 1), 100)
+        autofill_quali_matches(db, num)
         db.commit()
-        return jsonify({"ok": True})
+        return jsonify({"ok": True, "added": num})
+
+    if action == "remove":
+        try:
+            num = int(data.get("count", 1))
+        except (TypeError, ValueError):
+            return jsonify({"error": "bad match count"}), 400
+        count = quali_count(db)
+        if count == 0:
+            return jsonify({"error": "no qualification matches to remove"}), 400
+        num = min(max(num, 1), count)
+        keep = count - num
+        db.execute("DELETE FROM quali_matches WHERE match_index >= ?", (keep,))
+        db.execute("DELETE FROM results WHERE match_index >= ?", (keep,))
+        # Keep the live scoreboard pointing at a valid quali match.
+        row = db.execute(
+            "SELECT phase, schedule_index FROM match_state WHERE id = 1"
+        ).fetchone()
+        if row["phase"] == "quali" and row["schedule_index"] >= keep:
+            si = max(keep - 1, 0)
+            m = db.execute(
+                "SELECT * FROM quali_matches WHERE match_index = ?", (si,)
+            ).fetchone()
+            if m:
+                saved = db.execute(
+                    "SELECT * FROM results WHERE match_index = ?", (si,)
+                ).fetchone()
+                scores = {f: saved[f] for f in RESULT_FIELDS} if saved else None
+                load_match(db, "quali", si, (m["yellow_team"], m["green_team"]), scores)
+        db.commit()
+        return jsonify({"ok": True, "removed": num})
 
     if action == "delete":
         try:
