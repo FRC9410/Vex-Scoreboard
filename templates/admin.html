@@ -162,6 +162,7 @@
 let formLoaded = false;
 let cfgLoaded = false;
 let schedCache = null;
+let lastState = null;
 
 /* ===== Tabs ===== */
 document.querySelectorAll('.tab-btn').forEach(btn =>
@@ -184,6 +185,7 @@ function fillForm(s) {
 }
 
 function showStatus(s) {
+  lastState = s;
   applyAllyTheme(s);
   document.getElementById('timer-mini').textContent =
     fmtTime(s.timer_remaining) + (s.timer_running ? ' (running)' : '');
@@ -394,21 +396,33 @@ function renderElimMatch(m, e) {
   const i = m.n - 1;
   const bo = m.best_of > 1;
   const cur = i === e.current && !e.champion;
-  // Show every saved game, plus a trailing blank row for the next game while
-  // the series is still undecided (so an in-progress Bo3 grand final always
-  // has the current game visible and editable, not just the finished ones).
+  // Show every saved game. While the series is undecided, also fill in blank
+  // rows for the remaining games of the series (so a Bo3 always shows games
+  // 1/2/3 up front, not just the ones already played). The current live game's
+  // blank row mirrors the live scoreboard so you see it fill in real time.
   const saved = m.games.slice();
   const games = saved.slice();
   if (m.decided && !m.series_done) {
-    const nextG = games.length ? Math.max(...games.map(g => g.game_number)) + 1 : 1;
-    games.push({ game_number: nextG, yellow_score: '', green_score: '', _blank: true });
+    const savedMax = saved.length ? Math.max(...saved.map(g => g.game_number)) : 0;
+    const upTo = Math.max(m.best_of, savedMax + 1);
+    for (let gn = 1; gn <= upTo; gn++) {
+      if (!games.some(g => g.game_number === gn)) {
+        let ys = '', gs = '';
+        if (cur && gn === e.current_game && lastState) {  // live game → live score
+          ys = lastState.yellow_score; gs = lastState.green_score;
+        }
+        games.push({ game_number: gn, yellow_score: ys, green_score: gs, _blank: true });
+      }
+    }
+    games.sort((a, b) => a.game_number - b.game_number);
   }
   const series = (bo || saved.length > 1)
     ? '<span class="ee-series">' + m.wins.yellow + '–' + m.wins.green + '</span>' : '';
   let gamesHtml = '';
   if (m.decided) {
     gamesHtml = games.map(g =>
-      '<div class="ee-game' + (g._blank ? ' next' : '') + '" data-g="' + g.game_number + '">' +
+      '<div class="ee-game' + (g._blank ? ' next' : '') +
+      (cur && g.game_number === e.current_game ? ' live' : '') + '" data-g="' + g.game_number + '">' +
       '<span class="eg-n">G' + g.game_number + '</span>' +
       '<input class="eg-y" type="number" min="0" max="999" value="' + (g.yellow_score === '' ? '' : g.yellow_score) + '" placeholder="–">' +
       '<span class="q-dash">–</span>' +
