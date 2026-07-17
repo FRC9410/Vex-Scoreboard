@@ -4,7 +4,7 @@
 {% block content %}
   <header class="panel-top">
     <a class="back" href="/">&#8592; Back</a>
-    <div class="panel-title">{{ team|upper }} TEAM <span id="team-name"></span></div>
+    <div class="panel-title"><span data-ally-name="{{ 'a' if team == 'yellow' else 'b' }}">{{ team|upper }}</span> TEAM <span id="team-name"></span></div>
   </header>
   <main class="adjust">
     <div id="score" class="panel-score">&ndash;</div>
@@ -36,6 +36,7 @@ let tapsInFlight = 0;
 let lastScore = null;
 
 function apply(s) {
+  applyAllyTheme(s);
   const el = document.getElementById('score');
   const val = s[TEAM + '_score'];
   if (lastScore !== null && val !== lastScore) {

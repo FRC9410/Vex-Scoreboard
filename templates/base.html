@@ -18,6 +18,20 @@ async function fetchState() {
   if (!r.ok) throw new Error('state fetch failed');
   return r.json();
 }
+// Apply the configurable alliance colors + names. Every alliance-tinted
+// surface derives from --ally-a / --ally-b, so setting those two re-themes
+// the whole page; [data-ally-name="a"|"b"] spans get the display names.
+function applyAllyTheme(s) {
+  if (!s) return;
+  const root = document.documentElement.style;
+  if (s.ally_a_color) root.setProperty('--ally-a', s.ally_a_color);
+  if (s.ally_b_color) root.setProperty('--ally-b', s.ally_b_color);
+  if (s.ally_a_name != null)
+    document.querySelectorAll('[data-ally-name="a"]').forEach(e => e.textContent = s.ally_a_name);
+  if (s.ally_b_name != null)
+    document.querySelectorAll('[data-ally-name="b"]').forEach(e => e.textContent = s.ally_b_name);
+}
+fetchState().then(applyAllyTheme).catch(() => {});
 // Which part of the match we're in, plus the time left in that part.
 function phaseInfo(s) {
   const auto = s.auto_duration, drv = s.driver_duration, total = s.timer_duration;

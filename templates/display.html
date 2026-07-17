@@ -10,14 +10,14 @@
   </header>
   <main class="alliances">
     <section class="alliance yellow" id="yellow-side">
-      <div class="alliance-name">YELLOW</div>
+      <div class="alliance-name" data-ally-name="a">YELLOW</div>
       <div class="team-name" id="yellow-team">---</div>
       <div class="score" id="yellow-score">0</div>
       <div class="penalties">FOULS <span id="yellow-fouls">0</span> &middot; MAJOR <span id="yellow-majors">0</span></div>
     </section>
     <div class="vs">VS</div>
     <section class="alliance green" id="green-side">
-      <div class="alliance-name">GREEN</div>
+      <div class="alliance-name" data-ally-name="b">GREEN</div>
       <div class="team-name" id="green-team">---</div>
       <div class="score" id="green-score">0</div>
       <div class="penalties">FOULS <span id="green-fouls">0</span> &middot; MAJOR <span id="green-majors">0</span></div>
@@ -69,6 +69,7 @@ function setClock(s) {
 async function refresh() {
   try {
     const s = await fetchState();
+    applyAllyTheme(s);
     document.getElementById('match-label').textContent = s.match_label || ('MATCH ' + s.match_number);
     document.getElementById('yellow-team').textContent = s.yellow_team;
     document.getElementById('green-team').textContent = s.green_team;

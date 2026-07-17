@@ -184,6 +184,7 @@ async function refresh() {
     const r = await fetch('/api/schedule', { cache: 'no-store' });
     if (!r.ok) return;
     sched = await r.json();
+    if (sched.config) applyAllyTheme(sched.config);
     if (sched.phase === 'elims' && sched.elims) renderElimBracket();
     else renderQualiBracket();
     renderRankings();

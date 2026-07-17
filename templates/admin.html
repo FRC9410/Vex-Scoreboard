@@ -4,69 +4,152 @@
 {% block content %}
   <h1>MATCH ADMIN <span id="phase-chip" class="phase-chip"></span></h1>
 
-  <div class="admin-grid">
-    <div class="admin-col">
-      <section class="card">
-        <h2>Timer <span id="timer-mini" class="mini">--:--</span></h2>
-        <div class="btn-row">
-          <button class="ctl start" data-action="start">Start</button>
-          <button class="ctl pause" data-action="pause">Pause</button>
-          <button class="ctl reset" data-action="reset">Reset</button>
-        </div>
-      </section>
-
-      <section class="card">
-        <h2>Match Control <span id="sched-mini" class="mini"></span></h2>
-        <div class="btn-row">
-          <button id="prev-match" class="ctl">&#9664; Prev</button>
-          <button id="next-match" class="ctl save">Next Match &#9654;</button>
-        </div>
-        <div id="sched-msg" class="msg"></div>
-      </section>
-
-      <section class="card">
-        <h2>Match Setup</h2>
-        <label>Match number
-          <input id="match-number" type="number" min="1" max="9999" inputmode="numeric">
-        </label>
-        <label>Yellow team name
-          <input id="yellow-team" maxlength="20" autocomplete="off">
-        </label>
-        <label>Green team name
-          <input id="green-team" maxlength="20" autocomplete="off">
-        </label>
-        <label>Auto time (seconds)
-          <input id="auto-duration" type="number" min="0" max="600" inputmode="numeric">
-        </label>
-        <label>Teleop time (seconds)
-          <input id="driver-duration" type="number" min="5" max="3600" inputmode="numeric">
-        </label>
-        <label>Endgame time (seconds)
-          <input id="endgame-duration" type="number" min="0" max="600" inputmode="numeric">
-          <span class="hint">Official GEM QUEST: 20 auto &middot; 100 teleop &middot; 30 endgame (2:30 total)</span>
-        </label>
-        <button id="save" class="ctl save">Save</button>
-        <div id="save-msg" class="msg"></div>
-      </section>
-
-      <section class="card">
-        <h2>Danger Zone <span id="score-mini" class="mini"></span></h2>
-        <button id="reset-scores" class="ctl danger">Reset live scores &amp; fouls to 0</button>
-        <button id="reset-schedule" class="ctl danger">Restart event (clear ALL results &amp; elims)</button>
-      </section>
+  <!-- Always-visible control strip: run any match from any tab. -->
+  <section class="card control-strip">
+    <div class="cs-status">
+      <span id="sched-mini" class="mini"></span>
+      <span id="score-mini" class="mini"></span>
+      <span id="timer-mini" class="mini">--:--</span>
     </div>
+    <div class="cs-btns">
+      <button class="ctl start" data-action="start">Start</button>
+      <button class="ctl pause" data-action="pause">Pause</button>
+      <button class="ctl reset" data-action="reset">Reset</button>
+      <button id="prev-match" class="ctl">&#9664; Prev</button>
+      <button id="next-match" class="ctl save">Next &#9654;</button>
+    </div>
+    <div id="sched-msg" class="msg"></div>
+  </section>
 
-    <div class="admin-col">
-      <section class="card">
-        <h2>Qualification Matches <span class="mini">click scores to edit &middot; &#9654; = put on scoreboard</span></h2>
-        <div id="quali-list" class="quali-list"></div>
-        <button id="restore-pairings" class="ctl">Restore official pairings from the sheet</button>
-      </section>
+  <nav class="tabs">
+    <button class="tab-btn active" data-tab="run">Run / Quali</button>
+    <button class="tab-btn" data-tab="elims">Eliminations</button>
+    <button class="tab-btn" data-tab="setup">Setup</button>
+  </nav>
 
-      <section class="card">
-        <h2>Eliminations <span class="mini">4 teams &middot; double elim &middot; one grand final</span></h2>
-        <div id="elims-body"></div>
-      </section>
+  <!-- ===== RUN / QUALI ===== -->
+  <div class="tab-pane" id="tab-run">
+    <div class="admin-grid">
+      <div class="admin-col">
+        <section class="card">
+          <h2>Match Setup</h2>
+          <label>Match number
+            <input id="match-number" type="number" min="1" max="9999" inputmode="numeric">
+          </label>
+          <label><span data-ally-name="a">Yellow</span> team name
+            <input id="yellow-team" maxlength="20" autocomplete="off">
+          </label>
+          <label><span data-ally-name="b">Green</span> team name
+            <input id="green-team" maxlength="20" autocomplete="off">
+          </label>
+          <label>Auto time (seconds)
+            <input id="auto-duration" type="number" min="0" max="600" inputmode="numeric">
+          </label>
+          <label>Teleop time (seconds)
+            <input id="driver-duration" type="number" min="5" max="3600" inputmode="numeric">
+          </label>
+          <label>Endgame time (seconds)
+            <input id="endgame-duration" type="number" min="0" max="600" inputmode="numeric">
+            <span class="hint">Official GEM QUEST: 20 auto &middot; 100 teleop &middot; 30 endgame (2:30 total)</span>
+          </label>
+          <button id="save" class="ctl save">Save</button>
+          <div id="save-msg" class="msg"></div>
+        </section>
+
+        <section class="card">
+          <h2>Danger Zone</h2>
+          <button id="reset-scores" class="ctl danger">Reset live scores &amp; fouls to 0</button>
+          <button id="reset-schedule" class="ctl danger">Restart event (clear ALL results &amp; elims)</button>
+        </section>
+      </div>
+
+      <div class="admin-col">
+        <section class="card">
+          <h2>Qualification Matches <span class="mini">click scores to edit &middot; &#9654; = put on scoreboard</span></h2>
+          <div id="quali-list" class="quali-list"></div>
+          <div class="btn-row">
+            <button id="add-quali" class="ctl">+ Add match</button>
+          </div>
+        </section>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== ELIMINATIONS ===== -->
+  <div class="tab-pane hidden" id="tab-elims">
+    <section class="card">
+      <h2>Eliminations <span id="elim-fmt" class="mini"></span></h2>
+      <div id="elims-body"></div>
+    </section>
+  </div>
+
+  <!-- ===== SETUP ===== -->
+  <div class="tab-pane hidden" id="tab-setup">
+    <div class="admin-grid">
+      <div class="admin-col">
+        <section class="card">
+          <h2>Alliances</h2>
+          <div class="ally-cfg">
+            <label>Alliance A name
+              <input id="cfg-a-name" maxlength="14" autocomplete="off">
+            </label>
+            <label>Color
+              <input id="cfg-a-color" type="color">
+            </label>
+            <label>Alliance B name
+              <input id="cfg-b-name" maxlength="14" autocomplete="off">
+            </label>
+            <label>Color
+              <input id="cfg-b-color" type="color">
+            </label>
+          </div>
+          <button id="save-ally" class="ctl save">Save alliances</button>
+          <div id="ally-msg" class="msg"></div>
+        </section>
+
+        <section class="card">
+          <h2>Elimination Format <span class="mini">applies next time you start elims</span></h2>
+          <label>Teams in the bracket
+            <select id="cfg-elim-teams">
+              <option value="2">2 teams</option>
+              <option value="4">4 teams</option>
+              <option value="8">8 teams</option>
+            </select>
+          </label>
+          <label class="row-check"><input id="cfg-elim-double" type="checkbox"> Double elimination</label>
+          <label>Grand final
+            <select id="cfg-elim-gf">
+              <option value="1">Single match (best of 1)</option>
+              <option value="3">Best of 3</option>
+            </select>
+          </label>
+          <button id="save-fmt" class="ctl save">Save format</button>
+          <div id="fmt-msg" class="msg"></div>
+        </section>
+      </div>
+
+      <div class="admin-col">
+        <section class="card">
+          <h2>Teams <span class="mini">saving rebuilds the round-robin &amp; clears results</span></h2>
+          <div id="roster-list" class="roster-list"></div>
+          <div class="btn-row">
+            <button id="add-team" class="ctl">+ Add team</button>
+            <button id="save-roster" class="ctl save">Save roster</button>
+          </div>
+          <div id="roster-msg" class="msg"></div>
+        </section>
+
+        <section class="card">
+          <h2>Schedule &amp; Testing</h2>
+          <button id="regen-quali" class="ctl">Regenerate round-robin schedule</button>
+          <div class="btn-row">
+            <button id="test-quali" class="ctl">Random quali results</button>
+            <button id="test-all" class="ctl">Random quali + play elims</button>
+          </div>
+          <div class="hint">Test buttons overwrite results with random data for previewing the display &amp; brackets.</div>
+          <div id="setup-msg" class="msg"></div>
+        </section>
+      </div>
     </div>
   </div>
 
@@ -77,8 +160,19 @@
 {% block script %}
 <script>
 let formLoaded = false;
+let cfgLoaded = false;
 let schedCache = null;
 
+/* ===== Tabs ===== */
+document.querySelectorAll('.tab-btn').forEach(btn =>
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b === btn));
+    document.querySelectorAll('.tab-pane').forEach(p =>
+      p.classList.toggle('hidden', p.id !== 'tab-' + btn.dataset.tab));
+  })
+);
+
+/* ===== Match setup form ===== */
 function fillForm(s) {
   document.getElementById('match-number').value = s.match_number;
   document.getElementById('yellow-team').value = s.yellow_team;
@@ -90,10 +184,11 @@ function fillForm(s) {
 }
 
 function showStatus(s) {
-  const t = document.getElementById('timer-mini');
-  t.textContent = fmtTime(s.timer_remaining) + (s.timer_running ? ' (running)' : '');
+  applyAllyTheme(s);
+  document.getElementById('timer-mini').textContent =
+    fmtTime(s.timer_remaining) + (s.timer_running ? ' (running)' : '');
   document.getElementById('score-mini').textContent =
-    'Yellow ' + s.yellow_score + ' – Green ' + s.green_score;
+    s.ally_a_name + ' ' + s.yellow_score + ' – ' + s.green_score + ' ' + s.ally_b_name;
   document.getElementById('sched-mini').textContent =
     (s.match_label || '') + ' · ' + s.yellow_team + ' vs ' + s.green_team;
   document.getElementById('phase-chip').textContent =
@@ -132,24 +227,26 @@ document.getElementById('save').addEventListener('click', async () => {
     });
     fillForm(s);
     msg.textContent = 'Saved.';
-  } catch (e) {
-    msg.textContent = e.message;
-  }
+  } catch (e) { msg.textContent = e.message; }
   setTimeout(() => { msg.textContent = ''; }, 3000);
 });
 
-/* ===== Qualification match editor ===== */
-
+/* ===== Team dropdowns (shared) ===== */
 function teamSelect(cls, selected) {
   return '<select class="' + cls + '">' +
-    schedCache.roster.map(t =>
+    schedCache.teams.map(t =>
       '<option' + (t === selected ? ' selected' : '') + '>' + t + '</option>'
     ).join('') + '</select>';
 }
 
+/* ===== Qualification editor ===== */
 function renderQualiList() {
   const list = document.getElementById('quali-list');
   const isQuali = schedCache.phase === 'quali';
+  if (!schedCache.matches.length) {
+    list.innerHTML = '<div class="hint">No qualification matches. Add teams in Setup, then regenerate the schedule.</div>';
+    return;
+  }
   list.innerHTML = schedCache.matches.map(m => {
     const i = m.n - 1;
     const cur = isQuali && i === schedCache.current;
@@ -166,6 +263,7 @@ function renderQualiList() {
       '<button class="q-btn q-save" title="save teams + result">Save</button>' +
       '<button class="q-btn q-clear" title="erase this match\'s saved result">&#10005;</button>' +
       '<button class="q-btn q-go" title="put this match on the scoreboard">&#9654;</button>' +
+      '<button class="q-btn q-del" title="delete this match">&#128465;</button>' +
       '</div>';
   }).join('');
 
@@ -192,8 +290,38 @@ function renderQualiList() {
       if (!confirm('Put match ' + (i + 1) + ' on the scoreboard? Live scores will be replaced.')) return;
       await doQualiEdit({ index: i, make_current: true }, 'Match ' + (i + 1) + ' is live.');
     });
+    row.querySelector('.q-del').addEventListener('click', async () => {
+      if (!confirm('Delete match ' + (i + 1) + ' entirely? Later matches renumber up.')) return;
+      const msg = document.getElementById('sched-msg');
+      try {
+        const r = await fetch('/api/quali_schedule', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'delete', index: i })
+        });
+        const d = await r.json();
+        if (!r.ok) throw new Error(d.error || 'failed');
+        await refreshSchedule(true);
+        msg.textContent = 'Match ' + (i + 1) + ' deleted.';
+      } catch (e) { msg.textContent = e.message; }
+      setTimeout(() => { msg.textContent = ''; }, 4000);
+    });
   });
 }
+
+document.getElementById('add-quali').addEventListener('click', async () => {
+  const msg = document.getElementById('sched-msg');
+  try {
+    const r = await fetch('/api/quali_schedule', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'add' })
+    });
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.error || 'failed');
+    await refreshSchedule(true);
+    msg.textContent = 'Match added — set its teams and Save.';
+  } catch (e) { msg.textContent = e.message; }
+  setTimeout(() => { msg.textContent = ''; }, 4000);
+});
 
 async function doQualiEdit(body, okMsg) {
   const msg = document.getElementById('sched-msg');
@@ -202,38 +330,37 @@ async function doQualiEdit(body, okMsg) {
     fillForm(s);
     await refreshSchedule(true);
     msg.textContent = okMsg;
-  } catch (e) {
-    msg.textContent = e.message;
-  }
+  } catch (e) { msg.textContent = e.message; }
   setTimeout(() => { msg.textContent = ''; }, 4000);
 }
 
-document.getElementById('restore-pairings').addEventListener('click', async () => {
-  if (!confirm('Reset all 21 pairings back to the official schedule sheet? Saved results stay.')) return;
-  await post('/api/setup', { restore_pairings: true }).catch(() => {});
-  await refreshSchedule(true);
-});
-
 /* ===== Eliminations ===== */
+function elimFmtText() {
+  const c = schedCache.config;
+  return c.elim_num_teams + ' teams · ' + (c.elim_double ? 'double' : 'single') +
+    ' elim · GF ' + (c.elim_gf_best_of === 3 ? 'best of 3' : 'single');
+}
 
 function renderElims() {
   const body = document.getElementById('elims-body');
+  document.getElementById('elim-fmt').textContent = elimFmtText();
+
   if (schedCache.phase !== 'elims') {
-    const top4 = schedCache.rankings.slice(0, 4).map(t => t.team);
+    const n = schedCache.config.elim_num_teams;
+    const top = schedCache.rankings.slice(0, n).map(t => t.team);
     body.innerHTML =
-      '<div class="hint">Seeds pre-filled from current rankings (semifinals: 1 vs 4, 2 vs 3). Adjust if needed, then start.</div>' +
+      '<div class="hint">Seeds pre-filled from current rankings. Change the format in the Setup tab. Then start.</div>' +
       '<div class="seed-grid">' +
-      [0, 1, 2, 3].map(i =>
-        '<label>Seed ' + (i + 1) + teamSelect('seed-' + (i + 1), top4[i]) + '</label>'
+      Array.from({ length: n }, (_, i) =>
+        '<label>Seed ' + (i + 1) + teamSelect('seed-' + (i + 1), top[i]) + '</label>'
       ).join('') +
       '</div>' +
-      '<button id="start-elims" class="ctl save">START ELIMINATIONS</button>';
+      '<button id="start-elims" class="ctl save">START ELIMINATIONS (' + n + ' teams)</button>';
     document.getElementById('start-elims').addEventListener('click', async () => {
-      const seeds = [1, 2, 3, 4].map(n => body.querySelector('.seed-' + n).value);
-      if (new Set(seeds).size !== 4) { alert('Pick four different teams.'); return; }
-      if (!confirm('Start eliminations with:\n1. ' + seeds[0] + '\n2. ' + seeds[1] +
-        '\n3. ' + seeds[2] + '\n4. ' + seeds[3] +
-        '\n\nSemifinal 1 (' + seeds[0] + ' vs ' + seeds[3] + ') goes on the scoreboard.')) return;
+      const seeds = Array.from({ length: n }, (_, i) => body.querySelector('.seed-' + (i + 1)).value);
+      if (new Set(seeds).size !== n) { alert('Pick ' + n + ' different teams.'); return; }
+      if (!confirm('Start eliminations with seeds:\n' +
+        seeds.map((t, i) => (i + 1) + '. ' + t).join('\n'))) return;
       const msg = document.getElementById('sched-msg');
       try {
         const s = await post('/api/elims', { action: 'start', seeds: seeds });
@@ -248,20 +375,14 @@ function renderElims() {
 
   const e = schedCache.elims;
   body.innerHTML =
-    '<div class="elim-admin-list">' +
-    e.matches.map((m, i) =>
-      '<div class="ea-row' + (i === e.current && !e.champion ? ' current' : '') +
-      (m.result ? ' done' : '') + '">' +
-      '<span class="ea-label">' + m.label + '</span>' +
-      '<span class="ea-y">' + m.yellow + '</span>' +
-      '<span class="ea-mid">' + (m.result ? m.result.yellow + ' – ' + m.result.green : 'vs') + '</span>' +
-      '<span class="ea-g">' + m.green + '</span>' +
-      '</div>'
-    ).join('') +
-    (e.champion ? '<div class="ea-champion">&#127942; CHAMPION: ' + e.champion + '</div>' : '') +
+    '<div class="elim-edit-list">' +
+    e.matches.map(m => renderElimMatch(m, e)).join('') +
     '</div>' +
-    '<div class="hint">Use Prev / Next Match to run the bracket. Elim matches can\'t end in a tie.</div>' +
+    (e.champion ? '<div class="ea-champion">&#127942; CHAMPION: ' + e.champion + '</div>' : '') +
+    '<div class="hint">Enter each game\'s score, then Save. "+ rematch" adds a tiebreaker game. &#9654; puts a game on the scoreboard.</div>' +
     '<button id="back-quali" class="ctl danger">Back to qualifications</button>';
+
+  e.matches.forEach(m => attachElimHandlers(m, e));
   document.getElementById('back-quali').addEventListener('click', async () => {
     if (!confirm('Leave eliminations and go back to qualification matches? Bracket results are kept.')) return;
     const s = await post('/api/elims', { action: 'back_to_quali' }).catch(() => null);
@@ -269,26 +390,213 @@ function renderElims() {
   });
 }
 
-/* ===== Shared refresh ===== */
-
-async function refreshSchedule(force) {
-  try {
-    const r = await fetch('/api/schedule', { cache: 'no-store' });
-    if (!r.ok) return;
-    const fresh = await r.json();
-    const phaseChanged = !schedCache || fresh.phase !== schedCache.phase;
-    const editing = document.activeElement &&
-      (document.getElementById('quali-list').contains(document.activeElement) ||
-       document.getElementById('elims-body').contains(document.activeElement));
-    const dirty = document.querySelector('#quali-list .q-row.dirty');
-    schedCache = fresh;
-    if (force || phaseChanged || (!editing && !dirty)) {
-      renderQualiList();
-      renderElims();
-    }
-  } catch (e) {}
+function renderElimMatch(m, e) {
+  const i = m.n - 1;
+  const bo = m.best_of > 1;
+  const cur = i === e.current && !e.champion;
+  const games = m.games.length ? m.games : (m.decided ? [{ game_number: 1, yellow_score: '', green_score: '' }] : []);
+  const series = (bo || m.games.length > 1)
+    ? '<span class="ee-series">' + m.wins.yellow + '–' + m.wins.green + '</span>' : '';
+  let gamesHtml = '';
+  if (m.decided) {
+    gamesHtml = games.map(g =>
+      '<div class="ee-game" data-g="' + g.game_number + '">' +
+      '<span class="eg-n">G' + g.game_number + '</span>' +
+      '<input class="eg-y" type="number" min="0" max="999" value="' + (g.yellow_score === '' ? '' : g.yellow_score) + '" placeholder="–">' +
+      '<span class="q-dash">–</span>' +
+      '<input class="eg-g" type="number" min="0" max="999" value="' + (g.green_score === '' ? '' : g.green_score) + '" placeholder="–">' +
+      '<button class="q-btn eg-go" title="put this game on the scoreboard">&#9654;</button>' +
+      (m.games.length > 1 ? '<button class="q-btn eg-del" title="delete this game">&#10005;</button>' : '<span></span>') +
+      '</div>'
+    ).join('');
+  }
+  return '<div class="elim-edit' + (cur ? ' current' : '') + (m.series_done ? ' done' : '') +
+    (m.decided ? '' : ' pending') + '" data-i="' + i + '">' +
+    '<div class="ee-head">' +
+    '<span class="ee-label">' + m.label + (bo ? ' · Bo' + m.best_of : '') + '</span>' +
+    '<span class="ee-y">' + m.yellow + '</span>' +
+    series +
+    '<span class="ee-g">' + m.green + '</span>' +
+    (m.winner ? '<span class="ee-win">&#9650; ' + m.winner + '</span>' : '') +
+    '</div>' +
+    (m.decided ?
+      '<div class="ee-games">' + gamesHtml + '</div>' +
+      '<div class="ee-actions">' +
+      '<button class="q-btn ee-save">Save scores</button>' +
+      '<button class="q-btn ee-add">+ rematch game</button>' +
+      '</div>'
+      : '<div class="hint">Waiting on earlier matches.</div>') +
+    '</div>';
 }
 
+function attachElimHandlers(m, e) {
+  const i = m.n - 1;
+  const el = document.querySelector('.elim-edit[data-i="' + i + '"]');
+  if (!el || !m.decided) return;
+  el.addEventListener('input', () => el.classList.add('dirty'));
+  const save = el.querySelector('.ee-save');
+  if (save) save.addEventListener('click', async () => {
+    try {
+      for (const g of el.querySelectorAll('.ee-game')) {
+        const gn = parseInt(g.dataset.g, 10);
+        const y = g.querySelector('.eg-y').value, gr = g.querySelector('.eg-g').value;
+        if (y === '' && gr === '') continue;
+        await post('/api/elim_match', {
+          index: i, game: gn,
+          result: { yellow_score: y === '' ? 0 : y, green_score: gr === '' ? 0 : gr }
+        });
+      }
+      await refreshSchedule(true);
+      elimMsg(m.label + ' saved.');
+    } catch (err) { elimMsg(err.message); }
+  });
+  const add = el.querySelector('.ee-add');
+  if (add) add.addEventListener('click', async () => {
+    try { await post('/api/elim_match', { index: i, add_game: true }); await refreshSchedule(true); }
+    catch (err) { elimMsg(err.message); }
+  });
+  el.querySelectorAll('.ee-game').forEach(g => {
+    const gn = parseInt(g.dataset.g, 10);
+    const go = g.querySelector('.eg-go');
+    if (go) go.addEventListener('click', async () => {
+      if (!confirm('Put ' + m.label + ' game ' + gn + ' on the scoreboard? Live scores will be replaced.')) return;
+      try { const s = await post('/api/elim_match', { index: i, make_current: true, game: gn }); fillForm(s); refreshSchedule(true); elimMsg(m.label + ' is live.'); }
+      catch (err) { elimMsg(err.message); }
+    });
+    const del = g.querySelector('.eg-del');
+    if (del) del.addEventListener('click', async () => {
+      if (!confirm('Delete ' + m.label + ' game ' + gn + '?')) return;
+      try { await post('/api/elim_match', { index: i, game: gn, result: null }); await refreshSchedule(true); }
+      catch (err) { elimMsg(err.message); }
+    });
+  });
+}
+
+function elimMsg(t) {
+  const msg = document.getElementById('sched-msg');
+  msg.textContent = t;
+  setTimeout(() => { msg.textContent = ''; }, 4000);
+}
+
+/* ===== Setup tab: config, roster, testing ===== */
+function fillConfig() {
+  const c = schedCache.config;
+  document.getElementById('cfg-a-name').value = c.ally_a_name;
+  document.getElementById('cfg-a-color').value = c.ally_a_color;
+  document.getElementById('cfg-b-name').value = c.ally_b_name;
+  document.getElementById('cfg-b-color').value = c.ally_b_color;
+  document.getElementById('cfg-elim-teams').value = String(c.elim_num_teams);
+  document.getElementById('cfg-elim-double').checked = !!c.elim_double;
+  document.getElementById('cfg-elim-double').disabled = c.elim_num_teams === 2;
+  document.getElementById('cfg-elim-gf').value = String(c.elim_gf_best_of);
+  cfgLoaded = true;
+}
+
+document.getElementById('cfg-elim-teams').addEventListener('change', e => {
+  document.getElementById('cfg-elim-double').disabled = e.target.value === '2';
+});
+
+document.getElementById('save-ally').addEventListener('click', async () => {
+  const msg = document.getElementById('ally-msg');
+  try {
+    await post('/api/config', {
+      ally_a_name: document.getElementById('cfg-a-name').value,
+      ally_a_color: document.getElementById('cfg-a-color').value,
+      ally_b_name: document.getElementById('cfg-b-name').value,
+      ally_b_color: document.getElementById('cfg-b-color').value
+    });
+    await refreshSchedule(true);
+    msg.textContent = 'Alliances saved.';
+  } catch (e) { msg.textContent = e.message; }
+  setTimeout(() => { msg.textContent = ''; }, 3000);
+});
+
+document.getElementById('save-fmt').addEventListener('click', async () => {
+  const msg = document.getElementById('fmt-msg');
+  try {
+    await post('/api/config', {
+      elim_num_teams: document.getElementById('cfg-elim-teams').value,
+      elim_double: document.getElementById('cfg-elim-double').checked ? 1 : 0,
+      elim_gf_best_of: document.getElementById('cfg-elim-gf').value
+    });
+    await refreshSchedule(true);
+    msg.textContent = 'Format saved.';
+  } catch (e) { msg.textContent = e.message; }
+  setTimeout(() => { msg.textContent = ''; }, 3000);
+});
+
+function renderRoster() {
+  const list = document.getElementById('roster-list');
+  list.innerHTML = schedCache.teams.map((t, i) =>
+    '<div class="roster-row">' +
+    '<span class="rr-num">' + (i + 1) + '</span>' +
+    '<input class="rr-name" maxlength="20" value="' + t.replace(/"/g, '&quot;') + '">' +
+    '<button class="q-btn rr-del" title="remove">&#10005;</button>' +
+    '</div>'
+  ).join('');
+  list.querySelectorAll('.rr-del').forEach((b, i) =>
+    b.addEventListener('click', () => { b.closest('.roster-row').remove(); })
+  );
+}
+
+document.getElementById('add-team').addEventListener('click', () => {
+  const list = document.getElementById('roster-list');
+  const n = list.querySelectorAll('.roster-row').length + 1;
+  const div = document.createElement('div');
+  div.className = 'roster-row';
+  div.innerHTML = '<span class="rr-num">' + n + '</span>' +
+    '<input class="rr-name" maxlength="20" value="">' +
+    '<button class="q-btn rr-del" title="remove">&#10005;</button>';
+  div.querySelector('.rr-del').addEventListener('click', () => div.remove());
+  list.appendChild(div);
+  div.querySelector('.rr-name').focus();
+});
+
+document.getElementById('save-roster').addEventListener('click', async () => {
+  const msg = document.getElementById('roster-msg');
+  const names = Array.from(document.querySelectorAll('#roster-list .rr-name'))
+    .map(i => i.value.trim()).filter(Boolean);
+  if (!confirm('Save roster of ' + names.length + ' teams? This rebuilds the round-robin schedule and CLEARS all quali & elim results.')) return;
+  try {
+    const r = await fetch('/api/teams', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ teams: names })
+    });
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.error || 'failed');
+    await refreshSchedule(true);
+    msg.textContent = 'Roster saved (' + d.teams.length + ' teams).';
+  } catch (e) { msg.textContent = e.message; }
+  setTimeout(() => { msg.textContent = ''; }, 4000);
+});
+
+document.getElementById('regen-quali').addEventListener('click', async () => {
+  if (!confirm('Regenerate the round-robin from the current roster? This clears saved quali results.')) return;
+  const msg = document.getElementById('setup-msg');
+  try { const s = await post('/api/setup', { regenerate_quali: true }); fillForm(s); await refreshSchedule(true); msg.textContent = 'Schedule regenerated.'; }
+  catch (e) { msg.textContent = e.message; }
+  setTimeout(() => { msg.textContent = ''; }, 3000);
+});
+
+document.getElementById('test-quali').addEventListener('click', () => runTest({ quali: true }));
+document.getElementById('test-all').addEventListener('click', () => runTest({ quali: true, elims: true }));
+async function runTest(body) {
+  const msg = document.getElementById('setup-msg');
+  if (!confirm('Fill random test data? This overwrites current results.')) return;
+  try {
+    const r = await fetch('/api/test_data', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body)
+    });
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.error || 'failed');
+    await refreshSchedule(true);
+    refresh();
+    msg.textContent = 'Test data generated.';
+  } catch (e) { msg.textContent = e.message; }
+  setTimeout(() => { msg.textContent = ''; }, 3000);
+}
+
+/* ===== Match navigation ===== */
 async function stepMatch(dir) {
   const msg = document.getElementById('sched-msg');
   if (schedCache) {
@@ -297,40 +605,33 @@ async function stepMatch(dir) {
       let q;
       if (schedCache.phase === 'elims') {
         const cur = schedCache.elims.matches[schedCache.elims.current];
-        const next = schedCache.elims.matches[schedCache.elims.current + 1];
-        q = 'Save Yellow ' + state.yellow_score + ' – Green ' + state.green_score +
-          ' as the ' + cur.label + ' final' +
-          (next ? ' and move on to the ' + next.label + '?' : '? (That was the GRAND FINAL.)');
+        q = 'Save ' + state.ally_a_name + ' ' + state.yellow_score + ' – ' + state.green_score + ' ' + state.ally_b_name +
+          ' as a game of ' + (cur ? cur.label : 'this match') + '?';
       } else {
         const cur = schedCache.matches[schedCache.current];
         const next = schedCache.matches[schedCache.current + 1];
-        q = 'Save Yellow ' + state.yellow_score + ' – Green ' + state.green_score +
-          ' as the final for Match ' + cur.n + ' (' + cur.yellow + ' vs ' + cur.green + ')' +
-          (next ? ' and load Match ' + next.n + ' (' + next.yellow + ' vs ' + next.green + ')?'
-                : '? (This is the last match.)');
+        q = 'Save ' + state.ally_a_name + ' ' + state.yellow_score + ' – ' + state.green_score + ' ' + state.ally_b_name +
+          ' as the final for Match ' + (cur ? cur.n : '?') +
+          (next ? ' and load Match ' + next.n + '?' : '? (last match)');
       }
       if (!confirm(q)) return;
     }
-    if (dir === -1 && !confirm('Go BACK to the previous match? Its saved score will be reloaded.')) return;
+    if (dir === -1 && !confirm('Go BACK to the previous match?')) return;
   }
   try {
     const s = await post('/api/next_match', { dir: dir });
     fillForm(s);
     await refreshSchedule(true);
     msg.textContent = 'Now on ' + s.match_label + ': ' + s.yellow_team + ' vs ' + s.green_team;
-  } catch (e) {
-    msg.textContent = e.message;
-  }
+  } catch (e) { msg.textContent = e.message; }
   setTimeout(() => { msg.textContent = ''; }, 5000);
 }
-
 document.getElementById('next-match').addEventListener('click', () => stepMatch(1));
 document.getElementById('prev-match').addEventListener('click', () => stepMatch(-1));
 
 document.getElementById('reset-scores').addEventListener('click', () => {
-  if (confirm('Reset the LIVE scores and fouls to 0? (Saved results are untouched.)')) {
+  if (confirm('Reset the LIVE scores and fouls to 0? (Saved results are untouched.)'))
     post('/api/setup', { reset_scores: true }).catch(() => {});
-  }
 });
 
 document.getElementById('reset-schedule').addEventListener('click', async () => {
@@ -339,6 +640,28 @@ document.getElementById('reset-schedule').addEventListener('click', async () => 
   const s = await post('/api/setup', { reset_schedule: true }).catch(() => null);
   if (s) { fillForm(s); refreshSchedule(true); }
 });
+
+/* ===== Shared refresh ===== */
+async function refreshSchedule(force) {
+  try {
+    const r = await fetch('/api/schedule', { cache: 'no-store' });
+    if (!r.ok) return;
+    const fresh = await r.json();
+    const phaseChanged = !schedCache || fresh.phase !== schedCache.phase;
+    const editing = document.activeElement &&
+      (document.getElementById('quali-list').contains(document.activeElement) ||
+       document.getElementById('elims-body').contains(document.activeElement) ||
+       document.getElementById('roster-list').contains(document.activeElement));
+    const dirty = document.querySelector('.q-row.dirty, .elim-edit.dirty');
+    schedCache = fresh;
+    if (force || phaseChanged || (!editing && !dirty)) {
+      renderQualiList();
+      renderElims();
+      renderRoster();
+      if (!cfgLoaded || force) fillConfig();
+    }
+  } catch (e) {}
+}
 
 async function refresh() {
   try { showStatus(await fetchState()); } catch (e) {}
