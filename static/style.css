@@ -1182,6 +1182,8 @@ button { font-family: inherit; cursor: pointer; border: none; color: var(--text)
   gap: 0.4rem;
 }
 .eg-n { color: var(--dim); font-size: 0.8rem; }
+.ee-game.next .eg-n { color: var(--yellow); }
+.ee-game.next input { border-style: dashed; }
 .ee-game input {
   width: 100%; text-align: center; font-size: 0.95rem; padding: 0.3rem 0.15rem;
   border-radius: 0.4rem; border: 1px solid #3a3a46; background: #101017; color: var(--text);

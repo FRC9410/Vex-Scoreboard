@@ -394,19 +394,27 @@ function renderElimMatch(m, e) {
   const i = m.n - 1;
   const bo = m.best_of > 1;
   const cur = i === e.current && !e.champion;
-  const games = m.games.length ? m.games : (m.decided ? [{ game_number: 1, yellow_score: '', green_score: '' }] : []);
-  const series = (bo || m.games.length > 1)
+  // Show every saved game, plus a trailing blank row for the next game while
+  // the series is still undecided (so an in-progress Bo3 grand final always
+  // has the current game visible and editable, not just the finished ones).
+  const saved = m.games.slice();
+  const games = saved.slice();
+  if (m.decided && !m.series_done) {
+    const nextG = games.length ? Math.max(...games.map(g => g.game_number)) + 1 : 1;
+    games.push({ game_number: nextG, yellow_score: '', green_score: '', _blank: true });
+  }
+  const series = (bo || saved.length > 1)
     ? '<span class="ee-series">' + m.wins.yellow + '–' + m.wins.green + '</span>' : '';
   let gamesHtml = '';
   if (m.decided) {
     gamesHtml = games.map(g =>
-      '<div class="ee-game" data-g="' + g.game_number + '">' +
+      '<div class="ee-game' + (g._blank ? ' next' : '') + '" data-g="' + g.game_number + '">' +
       '<span class="eg-n">G' + g.game_number + '</span>' +
       '<input class="eg-y" type="number" min="0" max="999" value="' + (g.yellow_score === '' ? '' : g.yellow_score) + '" placeholder="–">' +
       '<span class="q-dash">–</span>' +
       '<input class="eg-g" type="number" min="0" max="999" value="' + (g.green_score === '' ? '' : g.green_score) + '" placeholder="–">' +
       '<button class="q-btn eg-go" title="put this game on the scoreboard">&#9654;</button>' +
-      (m.games.length > 1 ? '<button class="q-btn eg-del" title="delete this game">&#10005;</button>' : '<span></span>') +
+      (!g._blank && saved.length > 1 ? '<button class="q-btn eg-del" title="delete this game">&#10005;</button>' : '<span></span>') +
       '</div>'
     ).join('');
   }
